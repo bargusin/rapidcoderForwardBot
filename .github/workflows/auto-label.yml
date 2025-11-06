@@ -6,27 +6,48 @@ on:
 jobs:
   label-issues:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
       - uses: actions/github-script@v6
         with:
           script: |
-            const issue = context.payload.issue;
-            const title = issue.title;
+            try {
+              const issue = context.payload.issue;
+              const title = issue.title.toLowerCase();
             
-            // Автоматическое определение типа по префиксу в заголовке
-            if (title.includes('[Epic]')) {
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                labels: ['type: epic']
-              });
-            }
-            if (title.includes('[Feature]')) {
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                labels: ['type: feature']
-              });
+              const labelMap = {
+                '[epic]': 'type: epic',
+                '[feature]': 'type: feature', 
+                '[bug]': 'type: bug',
+                '[docs]': 'type: documentation',
+                '[chore]': 'type: chore'
+              };
+            
+              const labelsToAdd = [];
+            
+              for (const [prefix, label] of Object.entries(labelMap)) {
+                if (title.includes(prefix.toLowerCase())) {
+                  labelsToAdd.push(label);
+                }
+              }
+            
+              if (labelsToAdd.length > 0) {
+                console.log(`Adding labels to issue #${issue.number}: ${labelsToAdd.join(', ')}`);
+            
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  labels: labelsToAdd
+                });
+            
+                console.log('Labels added successfully');
+              } else {
+                console.log('No matching labels found for this issue');
+              }
+            
+            } catch (error) {
+              console.error('Error adding labels:', error);
+              core.setFailed(`Failed to add labels: ${error.message}`);
             }
