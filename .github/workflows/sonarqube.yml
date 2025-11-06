@@ -76,6 +76,7 @@ jobs:
           gradle clean build jacocoTestReport
 
       - name: SonarCloud Scan
+        if: github.event_name == 'pull_request'
         run: |
           gradle sonar \
             -Dsonar.analysis.ci=true \
