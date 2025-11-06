@@ -1,0 +1,32 @@
+name: Auto-Label Issues
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  label-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const title = issue.title;
+            
+            // Автоматическое определение типа по префиксу в заголовке
+            if (title.includes('[Epic]')) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['type: epic']
+              });
+            }
+            if (title.includes('[Feature]')) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['type: feature']
+              });
+            }

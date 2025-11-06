@@ -1,0 +1,53 @@
+name: "🪲 Bug Report"
+description: "Сообщение об ошибке или проблеме"
+title: "[Bug]: "
+labels: ["type: bug", "status: needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🪲 Описание дефекта
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: "Что произошло?"
+      description: "Краткое описание проблемы"
+      placeholder: "При выполнении X происходит Y вместо Z"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: "Шаги для воспроизведения"
+      description: "Последовательность действий для воспроизведения проблемы"
+      placeholder: |
+        1. Выполнить действие '...'
+        2. Происходит ошибка
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: "Ожидаемое поведение"
+      description: "Что должно происходить в нормальной ситуации?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: "Скриншоты/Логи"
+      description: "Если есть возможность, добавьте скриншоты или логи ошибок"
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: "Серьезность проблемы"
+      options:
+        - "Critical (Блокирующая)"
+        - "High (Важная)"
+        - "Medium (Средняя)"
+        - "Low (Незначительная)"

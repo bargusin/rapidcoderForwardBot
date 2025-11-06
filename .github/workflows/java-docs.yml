@@ -1,0 +1,103 @@
+name: Java Documentation
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    types: [ closed ]
+    branches: [ main ]
+
+jobs:
+  update-docs:
+    if: github.event_name == 'push' || (github.event.pull_request && github.event.pull_request.merged == true)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Generate Javadoc
+        run: |
+          ./gradlew javadoc
+
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/docs/javadoc
+
+      - name: Update API Changelog
+        if: github.event.pull_request && github.event.pull_request.merged == true
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            
+            // Получаем измененные Java файлы
+            const files = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+            
+            const javaFiles = files.data.filter(file => 
+              file.filename.endsWith('.java') && 
+              (file.filename.includes('controller') || file.filename.includes('service') || file.filename.includes('api'))
+            );
+            
+            if (javaFiles.length > 0) {
+              // Создаем запись в CHANGELOG
+              const changelogUpdate = `
+              ## ${new Date().toISOString().split('T')[0]} - PR #${pr.number}
+            
+              **Изменения в API:**
+              ${javaFiles.map(file => `- ${file.filename}: ${file.status}`).join('\n')}
+            
+              **Описание:** ${pr.title}
+              **Ссылка на PR:** ${pr.html_url}
+              **Javadoc:** https://${context.repo.owner}.github.io/${context.repo.repo}/
+              `;
+            
+              // Обновляем CHANGELOG.md
+              try {
+                const existingChangelog = await github.rest.repos.getContent({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  path: 'CHANGELOG.md'
+                });
+            
+                const currentContent = Buffer.from(existingChangelog.data.content, 'base64').toString();
+                const newContent = changelogUpdate + '\n\n' + currentContent;
+            
+                await github.rest.repos.createOrUpdateFileContents({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  path: 'CHANGELOG.md',
+                  message: `docs: update changelog for PR #${pr.number}`,
+                  content: Buffer.from(newContent).toString('base64'),
+                  sha: existingChangelog.data.sha
+                });
+              } catch (error) {
+                // Файл не существует, создаем новый
+                await github.rest.repos.createOrUpdateFileContents({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  path: 'CHANGELOG.md',
+                  message: `docs: create changelog for PR #${pr.number}`,
+                  content: Buffer.from('# API Changelog\n\n' + changelogUpdate).toString('base64')
+                });
+              }
+            
+              // Комментируем в PR
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: `📚 **Документация обновлена**\n\n- Javadoc сгенерирован\n- CHANGELOG.md обновлен\n- Доступно по ссылке: https://${context.repo.owner}.github.io/${context.repo.repo}/`
+              });
+            }
