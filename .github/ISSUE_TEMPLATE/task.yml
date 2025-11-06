@@ -1,0 +1,73 @@
+name: "🔧 Task"
+description: "Конкретная техническая задача"
+title: "[Task]: "
+labels: ["type: task", "status: needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🔧 Описание Task
+        Используйте этот шаблон для конкретных технических задач.
+
+  - type: input
+    id: feature-link
+    attributes:
+      label: "✨ Связанная Feature"
+      description: "Номер Feature issue, к которой относится эта задача"
+      placeholder: "#46"
+    validations:
+      required: true
+
+  - type: textarea
+    id: task-description
+    attributes:
+      label: "📝 Описание задачи"
+      description: "Что именно нужно сделать?"
+      placeholder: "Необходимо реализовать..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation-details
+    attributes:
+      label: "🔍 Детали реализации"
+      description: "Конкретные шаги и технические детали"
+      placeholder: |
+        1. Создать миграцию для таблицы X
+        2. Добавить поля Y в модель Z
+        3. Обновить сериализатор
+
+  - type: textarea
+    id: definition-of-done
+    attributes:
+      label: "🎯 Definition of Done"
+      description: "Критерии завершения задачи"
+      placeholder: |
+        - [ ] Код написан и протестирован
+        - [ ] PR создан и прошел ревью
+        - [ ] Тесты проходят успешно
+        - [ ] Документация обновлена (если нужно)
+
+  - type: markdown
+    attributes:
+      value: |
+        ## 🏷️ Дополнительная информация
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: "⚡ Сложность"
+      options:
+        - "Small (1-4 hours)"
+        - "Medium (4-8 hours)"
+        - "Large (1-2 days)"
+        - "X-Large (3+ days)"
+    validations:
+      required: true
+
+  - type: input
+    id: depends-on
+    attributes:
+      label: "⛓️ Зависит от"
+      description: "Номера задач, которые должны быть завершены перед этой"
+      placeholder: "#52, #53"
