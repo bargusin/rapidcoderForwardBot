@@ -27,7 +27,7 @@ jobs:
 
       - name: Generate Javadoc
         run: |
-          ./gradlew javadoc
+          gradle javadoc
 
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main'
