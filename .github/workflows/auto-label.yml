@@ -21,7 +21,7 @@ jobs:
                 '[feature]': 'type: feature', 
                 '[bug]': 'type: bug',
                 '[docs]': 'type: documentation',
-                '[chore]': 'type: chore'
+                '[task]': 'type: task'
               };
             
               const labelsToAdd = [];
