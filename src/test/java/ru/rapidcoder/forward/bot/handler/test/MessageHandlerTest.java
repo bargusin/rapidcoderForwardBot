@@ -6,7 +6,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.telegram.telegrambots.meta.api.objects.*;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.Bot;
 import ru.rapidcoder.forward.bot.handler.ChatManager;
 import ru.rapidcoder.forward.bot.handler.UserSettingsManager;
@@ -25,13 +24,13 @@ public class MessageHandlerTest {
     private Bot botSpy;
 
     @BeforeEach
-    void setUp() throws TelegramApiException {
+    void setUp() {
         Bot bot = new Bot("testBot", "testToken");
         botSpy = spy(bot);
     }
 
     @Test
-    void testHandleCommand() throws TelegramApiException {
+    void testHandleCommand() {
         Update update = createTextUpdate(123L, 456L, "/start");
         ArgumentCaptor<Update> messageCaptor = ArgumentCaptor.forClass(Update.class);
 
@@ -52,7 +51,7 @@ public class MessageHandlerTest {
     }
 
     @Test
-    void testHandleCallback() throws TelegramApiException {
+    void testHandleCallback() {
         Update update = createCallbackUpdate(123L, 456L, 789, "menu_settings");
         ArgumentCaptor<Update> messageCaptor = ArgumentCaptor.forClass(Update.class);
 

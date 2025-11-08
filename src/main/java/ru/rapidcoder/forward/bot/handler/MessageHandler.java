@@ -82,6 +82,9 @@ public class MessageHandler {
                     logger.info("Chat: {}", chat);
                 }
             }
+            default -> {
+                logger.warn("Unknown callbackData {}", callbackData);
+            }
         }
     }
 
