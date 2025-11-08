@@ -116,9 +116,7 @@ sonar {
         property 'sonar.coverage.jacoco.xmlReportPaths', 'build/reports/jacoco/test/jacocoTestReport.xml'
 
         // Игнорировать major/minor/info issues в Quality Gate
-        property "sonar.issues.fail.quality.gate.minSeverity", "CRITICAL"
-        property "sonar.qualitygate.newIssuesIgnoreMinSeverity", "MAJOR"
-        property "sonar.qualitygate.failOnWarnings", "false"
+        property "sonar.qualitygate.ignore", "MAJOR,MINOR,INFO"
     }
 }
 
