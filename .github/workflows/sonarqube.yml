@@ -51,40 +51,6 @@ jobs:
             exit 1
           fi
           echo "✅ All secrets are configured"
-          
-          #Проверка проекта
-          # 1. Проверка аутентификации
-          echo "--- Testing Authentication ---"
-          auth_response=$(curl -s -w "HTTP_STATUS:%{http_code}" -u "${SONAR_TOKEN}:" \
-          "https://sonarcloud.io/api/authentication/validate")
-          
-          http_status=$(echo "$auth_response" | grep -o 'HTTP_STATUS:[0-9]*' | cut -d: -f2)
-          auth_body=$(echo "$auth_response" | sed 's/HTTP_STATUS:[0-9]*//g')
-          
-          echo "Auth HTTP Status: $http_status"
-          echo "Auth Response: $auth_body"
-          
-          # 2. Проверка организации
-          echo "--- Checking Organization ---"
-          org_response=$(curl -s -w "HTTP_STATUS:%{http_code}" -u "${SONAR_TOKEN}:" \
-          "https://sonarcloud.io/api/organizations/search?organizations=${SONAR_ORG}")
-          
-          org_status=$(echo "$org_response" | grep -o 'HTTP_STATUS:[0-9]*' | cut -d: -f2)
-          org_body=$(echo "$org_response" | sed 's/HTTP_STATUS:[0-9]*//g')
-          
-          echo "Org HTTP Status: $org_status"
-          echo "Org Response: $org_body"
-          
-          # 3. Проверка проекта
-          echo "--- Checking Project ---"
-          project_response=$(curl -s -w "HTTP_STATUS:%{http_code}" -u "${SONAR_TOKEN}:" \
-          "https://sonarcloud.io/api/projects/search?organization=${SONAR_ORG}&projects=${SONAR_PROJECT}")
-          
-          project_status=$(echo "$project_response" | grep -o 'HTTP_STATUS:[0-9]*' | cut -d: -f2)
-          project_body=$(echo "$project_response" | sed 's/HTTP_STATUS:[0-9]*//g')
-          
-          echo "Project HTTP Status: $project_status"
-          echo "Project Response: $project_body"
 
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
@@ -129,91 +95,19 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check Quality Gate Status
-        env:
-          SONAR_ORG: ${{ secrets.SONAR_ORGANIZATION }}
-          SONAR_PROJECT: ${{ secrets.SONAR_PROJECT_KEY }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          echo "=== Quality Gate Details ==="
-
-          # Получаем детальную информацию о quality gate
-          response=$(curl -s -u "${SONAR_TOKEN}:" \
-            "https://sonarcloud.io/api/qualitygates/project_status?projectKey=${SONAR_PROJECT}&pullRequest=${{ github.event.pull_request.number }}")
-
-          echo "Quality Gate Response:"
-          echo "$response" | jq .
-
-          # Альтернативный способ
-          echo "--- Project Measures ---"
-          curl -s -u "${SONAR_TOKEN}:" \
-            "https://sonarcloud.io/api/measures/component?component=${SONAR_PROJECT}&metricKeys=alert_status,bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density" | jq .
-
-      - name: Comment PR with analysis result
+      - name: Add PR comment
         if: always()
         uses: actions/github-script@v6
         with:
           script: |
-            const qualityGateStatus = '${{ steps.quality-gate.outputs.quality-gate-status }}';
-            const dashboardUrl = '${{ steps.quality-gate.outputs.dashboard-url }}';
+            const prNumber = context.issue.number;
+            const dashboardUrl = `https://sonarcloud.io/dashboard?id=${{ secrets.SONAR_PROJECT_KEY }}&pullRequest=${prNumber}`;
             
-            let commentBody = '';
-            let emoji = '🔍';
-            
-            if (qualityGateStatus === 'OK') {
-              emoji = '✅';
-              commentBody = `
-              ${emoji} **SonarCloud Quality Gate пройдена!**
-            
-              Анализ кода завершен успешно. Все метрики качества соответствуют требованиям.
-            
-              [Посмотреть детальный отчет](${dashboardUrl})
-              `;
-            } else if (qualityGateStatus === 'ERROR') {
-              emoji = '❌';
-              commentBody = `
-              ${emoji} **SonarCloud Quality Gate не пройдена!**
-            
-              Требуется исправление проблем перед мержем.
-            
-              [Посмотреть проблемы](${dashboardUrl})
-              `;
-            } else {
-              commentBody = `
-              ${emoji} **SonarCloud анализ завершен**
-            
-              Статус: ${qualityGateStatus}
-            
-              [Посмотреть отчет](${dashboardUrl})
-              `;
-            }
-            
-            // Ищем существующий комментарий от бота
-            const comments = await github.rest.issues.listComments({
+            await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number
+              issue_number: prNumber,
+              body: `🔍 **SonarCloud Analysis Complete**
+            
+              [View detailed report](${dashboardUrl})`
             });
-            
-            const botComment = comments.data.find(comment => 
-              comment.body.includes('SonarCloud') && 
-              comment.user.type === 'Bot'
-            );
-            
-            if (botComment) {
-              // Обновляем существующий комментарий
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: commentBody
-              });
-            } else {
-              // Создаем новый комментарий
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: commentBody
-              });
-            }
