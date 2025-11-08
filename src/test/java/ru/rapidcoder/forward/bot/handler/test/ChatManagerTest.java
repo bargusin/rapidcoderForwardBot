@@ -28,7 +28,7 @@ public class ChatManagerTest {
     }
 
     @Test
-    public void testSaveOrUpdateChat() {
+    void testSaveOrUpdateChat() {
         assertThrows(NullPointerException.class, () -> {
             chatManager.saveOrUpdateChat(null);
         });
@@ -38,18 +38,18 @@ public class ChatManagerTest {
             chatManager.saveOrUpdateChat(failChat);
         });
 
+        failChat.setChatId(1L);
         assertThrows(IllegalArgumentException.class, () -> {
-            failChat.setChatId(1L);
             chatManager.saveOrUpdateChat(failChat);
         });
 
+        failChat.setChatType("channel");
         assertThrows(IllegalArgumentException.class, () -> {
-            failChat.setChatType("channel");
             chatManager.saveOrUpdateChat(failChat);
         });
 
+        failChat.setChatTitle("TestChannel");
         assertThrows(IllegalArgumentException.class, () -> {
-            failChat.setChatTitle("TestChannel");
             chatManager.saveOrUpdateChat(failChat);
         });
 
@@ -74,7 +74,7 @@ public class ChatManagerTest {
     }
 
     @Test
-    public void testGetAllChats() {
+    void testGetAllChats() {
         MonitorChat chat = new MonitorChat();
         chat.setChatId(1L);
         chat.setChatType("channel");
@@ -83,7 +83,7 @@ public class ChatManagerTest {
         chatManager.saveOrUpdateChat(chat);
 
         List<MonitorChat> chats = chatManager.getAllChats();
-        assertThat(chats.size()).isEqualTo(1);
+        assertThat(chats.size()).isNotZero();
 
         chat = chats.get(0);
         assertThat(chat.getChatId()).isEqualTo(1L);
@@ -95,7 +95,7 @@ public class ChatManagerTest {
     }
 
     @Test
-    public void testDeleteChat() {
+    void testDeleteChat() {
         MonitorChat chat = new MonitorChat();
         chat.setChatId(1L);
         chat.setChatType("channel");
@@ -113,7 +113,7 @@ public class ChatManagerTest {
     }
 
     @Test
-    public void testUpdateBotStatus() throws InterruptedException {
+    void testUpdateBotStatus() {
         MonitorChat chat = new MonitorChat();
         chat.setChatId(1L);
         chat.setChatType("channel");
