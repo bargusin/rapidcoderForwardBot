@@ -64,21 +64,22 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     private void handleCommand(Update update) {
-        long chatId = update.getMessage()
+        Long chatId = update.getMessage()
                 .getChatId();
         String messageText = update.getMessage()
                 .getText();
-        Long userId = update.getMessage()
-                .getFrom()
-                .getId();
 
         if ("/start".equals(messageText)) {
-            showMainMenu(chatId);
-        } else if (userSettingsManager.isChangingSettings(userId)) {
+            showMainMenu(chatId, null);
+        } else if ("/help".equals(messageText)) {
+            showHelpMenu(chatId, null);
+        } else if ("/settings".equals(messageText)) {
+            userSettingsManager.showSettingsMenu(chatId, null);
+        } else if (userSettingsManager.isChangingSettings(chatId)) {
             String callbackId = update.getCallbackQuery()
                     .getId();
             // Если пользователь вводит текст, проверяем, не ожидаем ли мы ввод нового значения настройки
-            userSettingsManager.handleTextInput(userId, callbackId, messageText);
+            userSettingsManager.handleTextInput(chatId, callbackId, messageText);
         }
     }
 
@@ -93,12 +94,9 @@ public class Bot extends TelegramLongPollingBot {
         int messageId = update.getCallbackQuery()
                 .getMessage()
                 .getMessageId();
-        Long userId = update.getCallbackQuery()
-                .getFrom()
-                .getId();
 
         if (callbackData.startsWith("settings_")) {
-            userSettingsManager.handleSettingsAction(chatId, userId, messageId, callbackData, callbackId);
+            userSettingsManager.handleSettingsAction(chatId, messageId, callbackData, callbackId);
         }
 
         switch (callbackData) {
@@ -108,46 +106,32 @@ public class Bot extends TelegramLongPollingBot {
             }
             case "back_to_main" -> {
                 navigationManager.saveNavigationState(chatId, "MAIN", null);
-                updateMainMenu(chatId, messageId);
+                showMainMenu(chatId, messageId);
             }
             case "menu_settings" -> {
                 navigationManager.saveNavigationState(chatId, "SETTINGS", null);
-                userSettingsManager.showSettingsMenu(chatId, userId, messageId);
+                userSettingsManager.showSettingsMenu(chatId, messageId);
             }
         }
     }
 
-    private void updateMainMenu(Long chatId, Integer messageId) {
-        String menuText = "*Выбор действия*\n";
-        EditMessageText msg = new EditMessageText();
-        msg.setChatId(chatId);
-        msg.setMessageId(messageId);
-        msg.setText(menuText);
-        msg.setParseMode(ParseMode.MARKDOWN);
-        msg.setReplyMarkup(createMainMenuKeyboard());
-        try {
-            execute(msg);
-        } catch (TelegramApiException e) {
-            logger.error(e.getMessage(), e);
+    private void showMainMenu(Long chatId, Integer messageId) {
+        String text = "*Выбор действия*\n";
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        rows.add(List.of(new KeyboardButton("⚙\uFE0F Настройки", "menu_settings"), new KeyboardButton("\uD83D\uDCAC Помощь", "menu_help")));
+        keyboard.setKeyboard(rows);
+
+        if (messageId != null) {
+            updateMessage(chatId, messageId, text, keyboard);
+        } else {
+            sendMessage(chatId, text, keyboard);
         }
     }
 
-    private void showMainMenu(Long chatId) {
-        String menuText = "*Выбор действия*\n";
-        SendMessage msg = new SendMessage();
-        msg.setChatId(chatId);
-        msg.setText(menuText);
-        msg.setParseMode(ParseMode.MARKDOWN);
-        msg.setReplyMarkup(createMainMenuKeyboard());
-        try {
-            execute(msg);
-        } catch (TelegramApiException e) {
-            logger.error(e.getMessage(), e);
-        }
-    }
-
-    private void showHelpMenu(long chatId, int messageId) {
-        String helpText = """
+    private void showHelpMenu(Long chatId, Integer messageId) {
+        String text = """
                 \uD83D\uDCAC *Помощь по боту*
                 
                 *Основные команды:*
@@ -155,34 +139,34 @@ public class Bot extends TelegramLongPollingBot {
                 
                 Описание работы бота""";
 
-        EditMessageText msg = new EditMessageText();
-        msg.setChatId(chatId);
-        msg.setMessageId(messageId);
-        msg.setText(helpText);
-        msg.setParseMode(ParseMode.MARKDOWN);
-        msg.setReplyMarkup(new InlineKeyboardMarkup(List.of(List.of(new KeyboardButton("\uD83C\uDFE0 Главное меню", "back_to_main")))));
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(List.of(List.of(new KeyboardButton("\uD83C\uDFE0 Главное меню", "back_to_main"))));
+        if (messageId != null) {
+            updateMessage(chatId, messageId, text, keyboard);
+        } else {
+            sendMessage(chatId, text, keyboard);
+        }
+    }
+
+    public void sendMessage(Long chatId, String text, InlineKeyboardMarkup keyboard) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setText(text);
+        message.setParseMode(ParseMode.MARKDOWN);
+        message.setReplyMarkup(keyboard);
         try {
-            execute(msg);
+            execute(message);
         } catch (TelegramApiException e) {
             logger.error(e.getMessage(), e);
         }
     }
 
-    private InlineKeyboardMarkup createMainMenuKeyboard() {
-        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
-
-        rows.add(List.of(new KeyboardButton("⚙\uFE0F Настройки", "menu_settings"), new KeyboardButton("\uD83D\uDCAC Помощь", "menu_help")));
-        keyboard.setKeyboard(rows);
-
-        return keyboard;
-    }
-
-    public void sendMessage(Long chatId, String text) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId.toString());
+    public void updateMessage(Long chatId, Integer messageId, String text, InlineKeyboardMarkup keyboard) {
+        EditMessageText message = new EditMessageText();
+        message.setChatId(chatId);
         message.setText(text);
+        message.setMessageId(messageId);
         message.setParseMode(ParseMode.MARKDOWN);
+        message.setReplyMarkup(keyboard);
         try {
             execute(message);
         } catch (TelegramApiException e) {
