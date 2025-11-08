@@ -11,15 +11,20 @@ import ru.rapidcoder.forward.bot.Bot;
 import ru.rapidcoder.forward.bot.component.KeyboardButton;
 import ru.rapidcoder.forward.bot.component.UserSettings;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class UserSettingsManager {
 
     private static final Logger logger = LoggerFactory.getLogger(UserSettingsManager.class);
-
     private final Bot bot;
-    // Хранилище настроек пользователей
+    private final NavigationManager navigationManager = NavigationManager.getInstance();
     private final Map<Long, UserSettings> userSettings = new HashMap<>();
+
+    private static final String ACTION_SETTINGS_TOGGLE_FIELD = "settings_toggle_field";
+    private static final String MENU_SETTINGS = "SETTINGS";
 
     public UserSettingsManager(Bot bot) {
         this.bot = bot;
@@ -29,14 +34,13 @@ public class UserSettingsManager {
         userSettings.putIfAbsent(userId, new UserSettings());
         UserSettings settings = userSettings.get(userId);
 
-        String text = "⚙\uFE0F *Настройки бота*\n\n" + "Текущие настройки:\n" + getCurrentSettingsText(settings);
+        String text = "⚙\uFE0F *Настройки бота*\n\n" + getCurrentSettingsText(settings);
         EditMessageText message = new EditMessageText();
         message.setChatId(chatId);
         message.setMessageId(messageId);
         message.setText(text);
         message.setParseMode(ParseMode.MARKDOWN);
         message.setReplyMarkup(createSettingsKeyboard(settings));
-
         try {
             bot.execute(message);
         } catch (TelegramApiException e) {
@@ -45,71 +49,48 @@ public class UserSettingsManager {
     }
 
     public void handleTextInput(Long userId, String callbackId, String text) {
+        logger.debug("Handle input text {}", text);
         UserSettings settings = userSettings.get(userId);
         String inputType = settings.getExpectedInputType();
-        if (inputType.equals(settings.getFieldString()
+        if (inputType.equals(settings.getFieldBoolean()
                 .getFieldName())) {
-            if (text.length() > 1000) {
-                //bot.showNotification(callbackId, "❌ Текст слишком длинный. Максимум 1000 символов.");
-                return;
-            }
-            settings.getFieldString()
-                    .setValue(text);
-            //bot.showNotification(callbackId, "✅ Текст для строкового поля обновлен");
+            bot.showNotification(callbackId, "✅ Значение обновлено");
         }
 
         settings.setWaitingForTextInput(false);
         settings.setExpectedInputType(null);
-        //showSettingsMenu(chatId, userId, messageId);
     }
 
     public void handleSettingsAction(Long chatId, Long userId, Integer messageId, String action, String callbackId) {
         UserSettings settings = userSettings.get(userId);
         switch (action) {
-            case "settings_set_text" -> {
-                settings.setWaitingForTextInput(true);
-                settings.setExpectedInputType(settings.getFieldString()
-                        .getFieldName());
-                bot.showNotification(callbackId, "Введите новый текст для текстового поля:");
+            case ACTION_SETTINGS_TOGGLE_FIELD -> {
+                settings.getFieldBoolean()
+                        .setValue(!settings.getFieldBoolean()
+                                .getValue());
+                navigationManager.saveNavigationState(chatId, MENU_SETTINGS, ACTION_SETTINGS_TOGGLE_FIELD);
+                showSettingsMenu(chatId, userId, messageId);
             }
             case "settings_reset" -> {
                 userSettings.put(userId, new UserSettings());
                 bot.showNotification(callbackId, "✅ Настройки сброшены к значениям по умолчанию");
+                navigationManager.saveNavigationState(chatId, MENU_SETTINGS, null);
+                //TODO
             }
             case "settings_save" -> {
                 bot.showNotification(callbackId, "✅ Настройки сохранены");
+                navigationManager.saveNavigationState(chatId, MENU_SETTINGS, null);
+                //TODO
             }
             default -> {
-
+                logger.warn("Action not fefined {}", action);
             }
-        }
-
-        // Обновляем сообщение с настройками
-        //updateSettingsMessage(chatId, messageId, settings);
-    }
-
-    public void updateSettingsMessage(Long chatId, Integer messageId, UserSettings settings) {
-        String text = "⚙\uFE0F *Настройки бота*\n\n" + getCurrentSettingsText(settings) + new Date();//TODO Временная заглушка, чтобы текст менялся
-
-        InlineKeyboardMarkup keyboard = createSettingsKeyboard(settings);
-
-        EditMessageText editMessage = new EditMessageText();
-        editMessage.setChatId(chatId.toString());
-        editMessage.setMessageId(messageId);
-        editMessage.setText(text);
-        editMessage.setParseMode(ParseMode.MARKDOWN);
-        editMessage.setReplyMarkup(keyboard);
-
-        try {
-            bot.execute(editMessage);
-        } catch (TelegramApiException e) {
-            logger.error(e.getMessage(), e);
         }
     }
 
     private String getCurrentSettingsText(UserSettings settings) {
         StringBuilder str = new StringBuilder();
-        str.append(String.format("\uD83D\uDCA1 Текстовое поле: %s\n\n", settings.getFieldString()
+        str.append(String.format("\uD83D\uDCA1 Значение: %b \n\n", settings.getFieldBoolean()
                 .getValue()));
         return str.toString();
     }
@@ -118,9 +99,10 @@ public class UserSettingsManager {
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
-        List<InlineKeyboardButton> row2 = new ArrayList<>();
-        row2.add(new KeyboardButton("📝 Изменить текстовое поле", "settings_set_text"));
-        rows.add(row2);
+        List<InlineKeyboardButton> row1 = new ArrayList<>();
+        row1.add(new KeyboardButton((settings.getFieldBoolean()
+                .getValue() ? "✅ " : "❌ ") + "Пример настройки (boolean)", ACTION_SETTINGS_TOGGLE_FIELD));
+        rows.add(row1);
 
         List<InlineKeyboardButton> row3 = new ArrayList<>();
         row3.add(new KeyboardButton("🔄 Сбросить настройки", "settings_reset"));

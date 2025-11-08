@@ -4,8 +4,7 @@ public class UserSettings {
 
     private boolean waitingForTextInput = false;
     private String expectedInputType;
-    private TypedField<Boolean> fieldBoolean = new TypedField<>("fieldBoolean", Boolean.class);
-    private TypedField<String> fieldString = new TypedField<>("fieldString", String.class);
+    private TypedField<Boolean> fieldBoolean = new TypedField<>("fieldBoolean", Boolean.class, false);
 
     public boolean isWaitingForTextInput() {
         return waitingForTextInput;
@@ -31,23 +30,10 @@ public class UserSettings {
         this.fieldBoolean = fieldBoolean;
     }
 
-    public TypedField<String> getFieldString() {
-        return fieldString;
-    }
-
-    public void setFieldString(TypedField<String> fieldString) {
-        this.fieldString = fieldString;
-    }
-
     public static class TypedField<T> {
         private final String fieldName;
         private final Class<T> fieldType;
         private T value;
-
-        public TypedField(String fieldName, Class<T> fieldType) {
-            this.fieldName = fieldName;
-            this.fieldType = fieldType;
-        }
 
         public TypedField(String fieldName, Class<T> fieldType, T value) {
             this.fieldName = fieldName;
@@ -59,20 +45,12 @@ public class UserSettings {
             return fieldName;
         }
 
-        public Class<T> getFieldType() {
-            return fieldType;
-        }
-
         public T getValue() {
             return value;
         }
 
         public void setValue(T value) {
             this.value = value;
-        }
-
-        public boolean isType(Class<?> type) {
-            return fieldType.equals(type);
         }
 
         @Override
