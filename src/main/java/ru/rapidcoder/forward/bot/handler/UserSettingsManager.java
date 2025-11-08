@@ -19,11 +19,14 @@ public class UserSettingsManager {
     private static final String ACTION_SETTINGS_TOGGLE_FIELD = "settings_toggle_field";
     private static final String MENU_SETTINGS = "SETTINGS";
     private final Bot bot;
-    private final NavigationManager navigationManager = NavigationManager.getInstance();
+    private final NavigationManager navigationManager;
     private final Map<Long, UserSettings> userSettings = new HashMap<>();
 
     public UserSettingsManager(Bot bot) {
         this.bot = bot;
+
+        String environment = System.getenv("botEnv") != null ? System.getenv("botEnv") : "dev";
+        navigationManager = new NavigationManager(System.getenv(environment + "MenuStorageFile"));
     }
 
     public void showSettingsMenu(Long chatId, Integer messageId) {
@@ -58,18 +61,18 @@ public class UserSettingsManager {
                 settings.getFieldBoolean()
                         .setValue(!settings.getFieldBoolean()
                                 .getValue());
-                navigationManager.saveNavigationState(chatId, MENU_SETTINGS, ACTION_SETTINGS_TOGGLE_FIELD);
+                navigationManager.setState(chatId, MENU_SETTINGS, ACTION_SETTINGS_TOGGLE_FIELD);
                 showSettingsMenu(chatId, messageId);
             }
             case "settings_reset" -> {
                 userSettings.put(chatId, new UserSettings());
                 bot.showNotification(callbackId, "✅ Настройки сброшены к значениям по умолчанию");
-                navigationManager.saveNavigationState(chatId, MENU_SETTINGS, null);
+                navigationManager.setState(chatId, MENU_SETTINGS, null);
                 //TODO
             }
             case "settings_save" -> {
                 bot.showNotification(callbackId, "✅ Настройки сохранены");
-                navigationManager.saveNavigationState(chatId, MENU_SETTINGS, null);
+                navigationManager.setState(chatId, MENU_SETTINGS, null);
                 //TODO
             }
             default -> {

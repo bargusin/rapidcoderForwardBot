@@ -13,10 +13,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.component.KeyboardButton;
-import ru.rapidcoder.forward.bot.component.MonitorChat;
-import ru.rapidcoder.forward.bot.handler.ChatManager;
-import ru.rapidcoder.forward.bot.handler.NavigationManager;
-import ru.rapidcoder.forward.bot.handler.UserSettingsManager;
+import ru.rapidcoder.forward.bot.handler.MessageHandler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,15 +22,13 @@ public class Bot extends TelegramLongPollingBot {
 
     private static final Logger logger = LoggerFactory.getLogger(Bot.class);
     private final String botName;
-    private final UserSettingsManager userSettingsManager;
-    private final NavigationManager navigationManager = NavigationManager.getInstance();
-    private final ChatManager chatManager = ChatManager.getInstance("//tmp/chats.db");
+    private final MessageHandler messageHandler;
 
     public Bot(String botName, String tokenId) {
         super(tokenId);
         this.botName = botName;
 
-        userSettingsManager = new UserSettingsManager(this);
+        messageHandler = new MessageHandler(this);
     }
 
     @Override
@@ -50,84 +45,39 @@ public class Bot extends TelegramLongPollingBot {
                         .getId();
                 long chatId = message.getChatId();
                 logger.debug("Обработка сообщения chatId={}, userId={}", chatId, userId);
+
                 if (message.getForwardDate() != null) {
-                    // Сообщение передано в бот, добавляем его в очередь для обработки
-                    // TODO
+                    handleForwardMessage(update);
                 } else if (message.hasText()) {
                     handleCommand(update);
-                } else if (message.hasDocument()) {
-                    // Обработка загрузки документов
                 }
             } else if (update.hasCallbackQuery()) {
                 handleCallback(update);
             } else if (update.hasMyChatMember()) {
-                chatManager.handleChatMemberUpdate(update.getMyChatMember());
+                handleChatMember(update);
             }
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
     }
 
-    private void handleCommand(Update update) {
-        Long chatId = update.getMessage()
-                .getChatId();
-        String messageText = update.getMessage()
-                .getText();
-
-        if ("/start".equals(messageText)) {
-            showMainMenu(chatId, null);
-        } else if ("/help".equals(messageText)) {
-            showHelpMenu(chatId, null);
-        } else if ("/settings".equals(messageText)) {
-            userSettingsManager.showSettingsMenu(chatId, null);
-        } else if (userSettingsManager.isChangingSettings(chatId)) {
-            String callbackId = update.getCallbackQuery()
-                    .getId();
-            // Если пользователь вводит текст, проверяем, не ожидаем ли мы ввод нового значения настройки
-            userSettingsManager.handleTextInput(chatId, callbackId, messageText);
-        }
+    public void handleCommand(Update update) {
+        messageHandler.handleCommand(update);
     }
 
-    private void handleCallback(Update update) {
-        String callbackData = update.getCallbackQuery()
-                .getData();
-        String callbackId = update.getCallbackQuery()
-                .getId();
-        long chatId = update.getCallbackQuery()
-                .getMessage()
-                .getChatId();
-        int messageId = update.getCallbackQuery()
-                .getMessage()
-                .getMessageId();
-
-        if (callbackData.startsWith("settings_")) {
-            userSettingsManager.handleSettingsAction(chatId, messageId, callbackData, callbackId);
-        }
-
-        switch (callbackData) {
-            case "menu_help" -> {
-                navigationManager.saveNavigationState(chatId, "HELP", null);
-                showHelpMenu(chatId, messageId);
-            }
-            case "back_to_main" -> {
-                navigationManager.saveNavigationState(chatId, "MAIN", null);
-                showMainMenu(chatId, messageId);
-            }
-            case "menu_settings" -> {
-                navigationManager.saveNavigationState(chatId, "SETTINGS", null);
-                userSettingsManager.showSettingsMenu(chatId, messageId);
-            }
-            case "menu_chats" -> {
-                navigationManager.saveNavigationState(chatId, "CHATS", null);
-                List<MonitorChat> chats = chatManager.getAllChats();
-                for (MonitorChat chat : chats) {
-                    logger.info("Chat: {}", chat);
-                }
-            }
-        }
+    public void handleCallback(Update update) {
+        messageHandler.handleCallback(update);
     }
 
-    private void showMainMenu(Long chatId, Integer messageId) {
+    public void handleForwardMessage(Update update) {
+        messageHandler.handleChatMember(update);
+    }
+
+    public void handleChatMember(Update update) {
+        messageHandler.handleChatMember(update);
+    }
+
+    public void showMainMenu(Long chatId, Integer messageId) {
         String text = "*Выбор действия*\n";
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
@@ -143,7 +93,7 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
-    private void showHelpMenu(Long chatId, Integer messageId) {
+    public void showHelpMenu(Long chatId, Integer messageId) {
         String text = """
                 \uD83D\uDCAC *Помощь по боту*
                 

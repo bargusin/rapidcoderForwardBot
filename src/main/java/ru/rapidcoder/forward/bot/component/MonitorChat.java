@@ -13,14 +13,6 @@ public class MonitorChat {
     private LocalDateTime addedDate;
     private LocalDateTime lastActivity;
 
-    public MonitorChat() {
-        // INTENTIONALLY EMPTY - Default constructor required for:
-        // - JSON deserialization (Jackson/Gson)
-        // - JPA entity instantiation
-        // - Dependency injection frameworks
-        // - Reflection-based object creation
-    }
-
     public Long getChatId() {
         return chatId;
     }
