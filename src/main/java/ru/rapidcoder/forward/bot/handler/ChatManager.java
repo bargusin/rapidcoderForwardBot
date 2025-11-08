@@ -81,9 +81,7 @@ public class ChatManager {
             stmt.executeUpdate();
             logger.info("Chat saved into database: {}", chat.getChatTitle());
         } catch (SQLException e) {
-            String errorMessage = String.format("Failed to save chat by chatId %d: %s", chat.getChatId(), e.getMessage());
-            logger.error(errorMessage, e);
-            throw new IllegalArgumentException(errorMessage, e);
+            throw new IllegalArgumentException(String.format("Failed to save chat by chatId %d", chat.getChatId()), e);
         }
     }
 
