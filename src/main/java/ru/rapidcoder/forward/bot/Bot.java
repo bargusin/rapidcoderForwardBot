@@ -13,6 +13,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.component.KeyboardButton;
+import ru.rapidcoder.forward.bot.component.MonitorChat;
+import ru.rapidcoder.forward.bot.handler.ChatManager;
 import ru.rapidcoder.forward.bot.handler.NavigationManager;
 import ru.rapidcoder.forward.bot.handler.UserSettingsManager;
 
@@ -25,6 +27,7 @@ public class Bot extends TelegramLongPollingBot {
     private final String botName;
     private final UserSettingsManager userSettingsManager;
     private final NavigationManager navigationManager = NavigationManager.getInstance();
+    private final ChatManager chatManager = ChatManager.getInstance("//tmp/chats.db");
 
     public Bot(String botName, String tokenId) {
         super(tokenId);
@@ -57,6 +60,8 @@ public class Bot extends TelegramLongPollingBot {
                 }
             } else if (update.hasCallbackQuery()) {
                 handleCallback(update);
+            } else if (update.hasMyChatMember()) {
+                chatManager.handleChatMemberUpdate(update.getMyChatMember());
             }
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
@@ -112,6 +117,13 @@ public class Bot extends TelegramLongPollingBot {
                 navigationManager.saveNavigationState(chatId, "SETTINGS", null);
                 userSettingsManager.showSettingsMenu(chatId, messageId);
             }
+            case "menu_chats" -> {
+                navigationManager.saveNavigationState(chatId, "CHATS", null);
+                List<MonitorChat> chats = chatManager.getAllChats();
+                for (MonitorChat chat : chats) {
+                    logger.info("Chat: {}", chat);
+                }
+            }
         }
     }
 
@@ -120,6 +132,7 @@ public class Bot extends TelegramLongPollingBot {
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
+        rows.add(List.of(new KeyboardButton("\uD83D\uDCE2 Подписка на каналы", "menu_chats")));
         rows.add(List.of(new KeyboardButton("⚙\uFE0F Настройки", "menu_settings"), new KeyboardButton("\uD83D\uDCAC Помощь", "menu_help")));
         keyboard.setKeyboard(rows);
 

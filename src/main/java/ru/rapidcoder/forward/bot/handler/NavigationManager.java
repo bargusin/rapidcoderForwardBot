@@ -28,8 +28,16 @@ public class NavigationManager {
     }
 
     private static void initDataBase() {
+        String sql = """
+                CREATE TABLE IF NOT EXISTS navigation_history (
+                    chat_id INTEGER PRIMARY KEY,
+                    state TEXT NOT NULL,
+                    context TEXT,
+                    updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """;
         try (Connection conn = DriverManager.getConnection(DB_URL); Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE IF NOT EXISTS navigation_history (chat_id INTEGER PRIMARY KEY, state TEXT NOT NULL, context TEXT, updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+            stmt.execute(sql);
 
             logger.info("Navigation database initialized successfully");
         } catch (SQLException e) {
@@ -38,7 +46,12 @@ public class NavigationManager {
     }
 
     public void saveNavigationState(long chatId, String state, String context) {
-        try (Connection conn = DriverManager.getConnection(DB_URL); PreparedStatement stmt = conn.prepareStatement("INSERT OR REPLACE INTO navigation_history (chat_id, state, context) VALUES (?, ?, ?)")) {
+        String sql = """
+                INSERT OR REPLACE INTO navigation_history
+                    (chat_id, state, context)
+                    VALUES (?, ?, ?)
+                """;
+        try (Connection conn = DriverManager.getConnection(DB_URL); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setLong(1, chatId);
             stmt.setString(2, state);
@@ -52,7 +65,10 @@ public class NavigationManager {
     }
 
     public Map<String, String> getNavigationState(long chatId) {
-        try (Connection conn = DriverManager.getConnection(DB_URL); PreparedStatement stmt = conn.prepareStatement("SELECT state, context FROM navigation_history WHERE chat_id = ? LIMIT 1")) {
+        String sql = """
+                SELECT state, context FROM navigation_history WHERE chat_id = ? LIMIT 1
+                """;
+        try (Connection conn = DriverManager.getConnection(DB_URL); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setLong(1, chatId);
             ResultSet rs = stmt.executeQuery();

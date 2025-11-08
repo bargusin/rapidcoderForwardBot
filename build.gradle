@@ -95,7 +95,7 @@ jacocoTestReport {
         afterEvaluate {
             classDirectories.setFrom(files(classDirectories.files.collect {
                 fileTree(dir: it, exclude: [
-                        '**/config/**'
+                    '**/config/**'
                 ])
             }))
         }
@@ -117,11 +117,4 @@ sonar {
     }
 }
 
-// Зависимости между задачами
-tasks.test {
-    finalizedBy tasks.jacocoTestReport
-}
-
-tasks.check {
-    dependsOn tasks.jacocoTestCoverageVerification
-}
+check.dependsOn jacocoTestCoverageVerification
