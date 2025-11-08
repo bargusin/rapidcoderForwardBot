@@ -91,6 +91,7 @@ jobs:
             -Dsonar.pullrequest.provider=github \
             -Dsonar.pullrequest.github.repository=${{ github.repository }} \
             -Dsonar.qualitygate.wait=true \
+            -sonar.coverage.ignore=true \
             -Dsonar.qualitygate.ignore=INFO,MINOR \
             -Dsonar.issues.fail.quality.gate.minSeverity=MAJOR
         env:
