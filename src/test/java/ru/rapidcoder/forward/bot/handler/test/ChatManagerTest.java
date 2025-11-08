@@ -8,8 +8,10 @@ import ru.rapidcoder.forward.bot.handler.ChatManager;
 
 import java.io.File;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertThrows;
 
 public class ChatManagerTest {
@@ -29,30 +31,29 @@ public class ChatManagerTest {
 
     @Test
     public void testSaveOrUpdateChat() {
-        MonitorChat chat = new MonitorChat();
-
         assertThrows(NullPointerException.class, () -> {
             chatManager.saveOrUpdateChat(null);
         });
 
         assertThrows(NullPointerException.class, () -> {
-            chatManager.saveOrUpdateChat(new MonitorChat());
+            MonitorChat failChat = new MonitorChat();
+            chatManager.saveOrUpdateChat(failChat);
         });
 
-        assertThrows(RuntimeException.class, () -> {
+        assertThrows(IllegalArgumentException.class, () -> {
             MonitorChat failChat = new MonitorChat();
             failChat.setChatId(1L);
             chatManager.saveOrUpdateChat(failChat);
         });
 
-        assertThrows(RuntimeException.class, () -> {
+        assertThrows(IllegalArgumentException.class, () -> {
             MonitorChat failChat = new MonitorChat();
             failChat.setChatId(1L);
             failChat.setChatType("channel");
             chatManager.saveOrUpdateChat(failChat);
         });
 
-        assertThrows(RuntimeException.class, () -> {
+        assertThrows(IllegalArgumentException.class, () -> {
             MonitorChat failChat = new MonitorChat();
             failChat.setChatId(1L);
             failChat.setChatType("channel");
@@ -60,6 +61,7 @@ public class ChatManagerTest {
             chatManager.saveOrUpdateChat(failChat);
         });
 
+        MonitorChat chat = new MonitorChat();
         chat.setChatId(1L);
         chat.setChatType("channel");
         chat.setChatTitle("TestChannel");
@@ -130,7 +132,8 @@ public class ChatManagerTest {
         chat = chatManager.findChatById(1L);
         assertThat(chat).isNotNull();
 
-        Thread.sleep(2000);
+        await().atMost(2, TimeUnit.SECONDS)
+                .until(() -> true);
         chatManager.updateBotStatus(1L, "left");
 
         MonitorChat modifiedChat = chatManager.findChatById(1L);

@@ -82,7 +82,7 @@ public class ChatManager {
             logger.info("Chat saved into database: {}", chat.getChatTitle());
         } catch (SQLException e) {
             logger.error("Failed to save chat by chatId {}: {}", chat.getChatId(), e.getMessage(), e);
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -102,7 +102,7 @@ public class ChatManager {
 
     public List<MonitorChat> getAllChats() {
         List<MonitorChat> chats = new ArrayList<>();
-        String sql = "SELECT * FROM monitored_chats";
+        String sql = "SELECT chat_id, chat_title, chat_type, bot_status, created_at, updated_at FROM monitored_chats";
 
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
@@ -116,7 +116,7 @@ public class ChatManager {
     }
 
     public MonitorChat findChatById(Long chatId) {
-        String sql = "SELECT * FROM monitored_chats WHERE chat_id=?";
+        String sql = "SELECT chat_id, chat_title, chat_type, bot_status, created_at, updated_at FROM monitored_chats WHERE chat_id=?";
 
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, chatId);
@@ -163,14 +163,12 @@ public class ChatManager {
         String chatType = getChatType(chat);
         logger.info("Bot's status changed from chat '{}' to '{}'", chat.getTitle(), status);
         switch (status) {
-            case "administrator":
-                addOrUpdateChat(chatId, chat.getTitle(), chatType, status);
-            case "member":
-            case "restricted":
+            case "administrator", "restricted":
                 addOrUpdateChat(chatId, chat.getTitle(), chatType, status);
                 break;
-            case "left":
-            case "kicked":
+            case "member":
+                break;
+            case "left", "kicked":
                 deleteChat(chatId);
                 break;
             default:
