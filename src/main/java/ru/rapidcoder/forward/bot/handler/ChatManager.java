@@ -180,14 +180,15 @@ public class ChatManager {
     }
 
     private String getChatType(Chat chat) {
-        if (chat.isChannelChat())
+        if (chat.isChannelChat()) {
             return "channel";
-        if (chat.isGroupChat())
+        } else if (chat.isGroupChat()) {
             return "group";
-        if (chat.isSuperGroupChat())
+        } else if (chat.isSuperGroupChat()) {
             return "supergroup";
-        if (chat.isUserChat())
+        } else if (chat.isUserChat()) {
             return "private";
+        }
         return "unknown";
     }
 
