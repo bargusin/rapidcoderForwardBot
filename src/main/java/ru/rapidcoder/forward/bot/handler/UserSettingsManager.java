@@ -90,8 +90,9 @@ public class UserSettingsManager {
 
     private String getCurrentSettingsText(UserSettings settings) {
         StringBuilder str = new StringBuilder();
-        str.append(String.format("\uD83D\uDCA1 Значение: %b \n\n", settings.getFieldBoolean()
+        str.append(String.format("\uD83D\uDCA1 Значение: %b", settings.getFieldBoolean()
                 .getValue()));
+        str.append("\n\n");
         return str.toString();
     }
 
