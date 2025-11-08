@@ -53,17 +53,23 @@ jobs:
           echo "✅ All secrets are configured"
           
           #Проверка проекта
-          response=$(curl -s -u "${{ secrets.SONAR_TOKEN }}:" \
-          "https://sonarcloud.io/api/projects/search?projects=${{ secrets.SONAR_PROJECT_KEY }}")
-          
-          echo "API Response: $response"
-          
-          if echo "$response" | grep -q '"components":\[\]'; then
-          echo "❌ Project does not exist in SonarCloud"
-          echo "💡 Create it at: https://sonarcloud.io/projects/create"
-          else
-          echo "✅ Project exists in SonarCloud"
-          fi
+          # 1. Проверка организации
+          echo "--- Checking organization ---"
+          org_response=$(curl -s -u "${SONAR_TOKEN}:" \
+          "https://sonarcloud.io/api/organizations/search?organizations=${SONAR_ORG}")
+          echo "Organization check: $org_response"
+            
+          # 2. Проверка проекта
+          echo "--- Checking project ---"
+          project_response=$(curl -s -u "${SONAR_TOKEN}:" \
+          "https://sonarcloud.io/api/projects/search?organization=${SONAR_ORG}&projects=${SONAR_PROJECT}")
+          echo "Project check: $project_response"
+            
+          # 3. Проверка прав пользователя
+          echo "--- Checking user permissions ---"
+          user_response=$(curl -s -u "${SONAR_TOKEN}:" \
+          "https://sonarcloud.io/api/permissions/verify?organization=${SONAR_ORG}&projectKey=${SONAR_PROJECT}")
+          echo "Permissions check: $user_response"
 
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
