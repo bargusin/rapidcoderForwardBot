@@ -51,6 +51,19 @@ jobs:
             exit 1
           fi
           echo "✅ All secrets are configured"
+          
+          #Проверка проекта
+          response=$(curl -s -u "${{ secrets.SONAR_TOKEN }}:" \
+          "https://sonarcloud.io/api/projects/search?projects=${{ secrets.SONAR_PROJECT_KEY }}")
+          
+          echo "API Response: $response"
+          
+          if echo "$response" | grep -q '"components":\[\]'; then
+          echo "❌ Project does not exist in SonarCloud"
+          echo "💡 Create it at: https://sonarcloud.io/projects/create"
+          else
+          echo "✅ Project exists in SonarCloud"
+          fi
 
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
