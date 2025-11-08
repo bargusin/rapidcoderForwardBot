@@ -91,11 +91,8 @@ jobs:
             -Dsonar.pullrequest.provider=github \
             -Dsonar.pullrequest.github.repository=${{ github.repository }} \
             -Dsonar.qualitygate.wait=true \
-            -Dsonar.qualitygate.ignore=MAJOR,INFO,MINOR \
-            -Dsonar.issues.fail.quality.gate.minSeverity=CRITICAL \
-            -Dsonar.verbose=true \
-            -Dsonar.scanner.debug=true \
-            --info
+            -Dsonar.qualitygate.ignore=INFO,MINOR \
+            -Dsonar.issues.fail.quality.gate.minSeverity=MAJOR
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -106,7 +103,7 @@ jobs:
         with:
           script: |
             const prNumber = context.issue.number;
-            const dashboardUrl = `https://sonarcloud.io/dashboard?id=${{ secrets.SONAR_PROJECT_KEY }}&pullRequest=${github.event.pull_request.number}`;
+            const dashboardUrl = `https://sonarcloud.io/dashboard?id=${{ secrets.SONAR_PROJECT_KEY }}&pullRequest=${prNumber}`;
             
             await github.rest.issues.createComment({
               owner: context.repo.owner,

@@ -104,18 +104,11 @@ jacocoTestReport {
 
 sonar {
     properties {
-        property 'sonar.gradle.skipCompile', 'true'
-        property 'sonar.host.url', 'https://sonarcloud.io'
-        property 'sonar.organization', System.getenv('SONAR_ORGANIZATION')
-        property 'sonar.projectKey', System.getenv('SONAR_PROJECT_KEY')
-
-        property 'sonar.sourceEncoding', 'UTF-8'
-        property 'sonar.java.source', '17'
-        property 'sonar.java.binaries', 'build/classes/java/main'
-        property 'sonar.java.libraries', 'build/libs/*.jar'
-        property 'sonar.coverage.jacoco.xmlReportPaths', 'build/reports/jacoco/test/jacocoTestReport.xml'
-
-        // Игнорировать major/minor/info issues в Quality Gate
+        property "sonar.host.url", "https://sonarcloud.io"
+        property "sonar.organization", System.getenv('SONAR_ORGANIZATION') ?: project.findProperty('sonar.organization')
+        property "sonar.projectKey", System.getenv('SONAR_PROJECT_KEY') ?: project.findProperty('sonar.projectKey')
+        property "sonar.token", System.getenv('SONAR_TOKEN')
+        property "sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml"
         property "sonar.qualitygate.ignore", "MAJOR,MINOR,INFO"
     }
 }
