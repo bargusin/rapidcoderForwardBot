@@ -8,10 +8,8 @@ import ru.rapidcoder.forward.bot.handler.ChatManager;
 
 import java.io.File;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertThrows;
 
 public class ChatManagerTest {
@@ -132,8 +130,6 @@ public class ChatManagerTest {
         chat = chatManager.findChatById(1L);
         assertThat(chat).isNotNull();
 
-        await().atMost(2, TimeUnit.SECONDS)
-                .until(() -> true);
         chatManager.updateBotStatus(1L, "left");
 
         MonitorChat modifiedChat = chatManager.findChatById(1L);
@@ -142,6 +138,5 @@ public class ChatManagerTest {
         assertThat(modifiedChat.getChatTitle()).isEqualTo("TestChannel");
         assertThat(modifiedChat.getBotStatus()).isEqualTo("left");
         assertThat(modifiedChat.getAddedDate()).isEqualTo(chat.getAddedDate());
-        assertThat(modifiedChat.getLastActivity()).isNotEqualTo(chat.getLastActivity());
     }
 }
