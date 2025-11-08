@@ -129,13 +129,25 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check Quality Gate status
-        id: quality-gate
-        uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
-        with:
-          scanMetadataReportFile: build/sonar/report-task.txt
+      - name: Check Quality Gate Status
         env:
+          SONAR_ORG: ${{ secrets.SONAR_ORGANIZATION }}
+          SONAR_PROJECT: ${{ secrets.SONAR_PROJECT_KEY }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          echo "=== Quality Gate Details ==="
+
+          # Получаем детальную информацию о quality gate
+          response=$(curl -s -u "${SONAR_TOKEN}:" \
+            "https://sonarcloud.io/api/qualitygates/project_status?projectKey=${SONAR_PROJECT}&pullRequest=${{ github.event.pull_request.number }}")
+
+          echo "Quality Gate Response:"
+          echo "$response" | jq .
+
+          # Альтернативный способ
+          echo "--- Project Measures ---"
+          curl -s -u "${SONAR_TOKEN}:" \
+            "https://sonarcloud.io/api/measures/component?component=${SONAR_PROJECT}&metricKeys=alert_status,bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density" | jq .
 
       - name: Comment PR with analysis result
         if: always()
