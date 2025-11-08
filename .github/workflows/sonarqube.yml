@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.head_ref }}
 
-      - name: Debug SonarCloud configuration
+      - name: SonarCloud Check
         run: |
           echo "🔍 Детальная проверка конфигурации:"
           echo "SONAR_ORGANIZATION: '${{ secrets.SONAR_ORGANIZATION }}'"
@@ -53,23 +53,38 @@ jobs:
           echo "✅ All secrets are configured"
           
           #Проверка проекта
-          # 1. Проверка организации
-          echo "--- Checking organization ---"
-          org_response=$(curl -s -u "${SONAR_TOKEN}:" \
+          # 1. Проверка аутентификации
+          echo "--- Testing Authentication ---"
+          auth_response=$(curl -s -w "HTTP_STATUS:%{http_code}" -u "${SONAR_TOKEN}:" \
+          "https://sonarcloud.io/api/authentication/validate")
+          
+          http_status=$(echo "$auth_response" | grep -o 'HTTP_STATUS:[0-9]*' | cut -d: -f2)
+          auth_body=$(echo "$auth_response" | sed 's/HTTP_STATUS:[0-9]*//g')
+          
+          echo "Auth HTTP Status: $http_status"
+          echo "Auth Response: $auth_body"
+          
+          # 2. Проверка организации
+          echo "--- Checking Organization ---"
+          org_response=$(curl -s -w "HTTP_STATUS:%{http_code}" -u "${SONAR_TOKEN}:" \
           "https://sonarcloud.io/api/organizations/search?organizations=${SONAR_ORG}")
-          echo "Organization check: $org_response"
-            
-          # 2. Проверка проекта
-          echo "--- Checking project ---"
-          project_response=$(curl -s -u "${SONAR_TOKEN}:" \
+          
+          org_status=$(echo "$org_response" | grep -o 'HTTP_STATUS:[0-9]*' | cut -d: -f2)
+          org_body=$(echo "$org_response" | sed 's/HTTP_STATUS:[0-9]*//g')
+          
+          echo "Org HTTP Status: $org_status"
+          echo "Org Response: $org_body"
+          
+          # 3. Проверка проекта
+          echo "--- Checking Project ---"
+          project_response=$(curl -s -w "HTTP_STATUS:%{http_code}" -u "${SONAR_TOKEN}:" \
           "https://sonarcloud.io/api/projects/search?organization=${SONAR_ORG}&projects=${SONAR_PROJECT}")
-          echo "Project check: $project_response"
-            
-          # 3. Проверка прав пользователя
-          echo "--- Checking user permissions ---"
-          user_response=$(curl -s -u "${SONAR_TOKEN}:" \
-          "https://sonarcloud.io/api/permissions/verify?organization=${SONAR_ORG}&projectKey=${SONAR_PROJECT}")
-          echo "Permissions check: $user_response"
+          
+          project_status=$(echo "$project_response" | grep -o 'HTTP_STATUS:[0-9]*' | cut -d: -f2)
+          project_body=$(echo "$project_response" | sed 's/HTTP_STATUS:[0-9]*//g')
+          
+          echo "Project HTTP Status: $project_status"
+          echo "Project Response: $project_body"
 
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
