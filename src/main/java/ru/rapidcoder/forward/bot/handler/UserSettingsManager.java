@@ -23,6 +23,9 @@ public class UserSettingsManager {
     private final NavigationManager navigationManager = NavigationManager.getInstance();
     private final Map<Long, UserSettings> userSettings = new HashMap<>();
 
+    private static final String ACTION_SETTINGS_TOGGLE_FIELD = "settings_toggle_field";
+    private static final String MENU_SETTINGS = "SETTINGS";
+
     public UserSettingsManager(Bot bot) {
         this.bot = bot;
     }
@@ -46,6 +49,7 @@ public class UserSettingsManager {
     }
 
     public void handleTextInput(Long userId, String callbackId, String text) {
+        logger.debug("Handle input text {}", text);
         UserSettings settings = userSettings.get(userId);
         String inputType = settings.getExpectedInputType();
         if (inputType.equals(settings.getFieldBoolean()
@@ -60,30 +64,33 @@ public class UserSettingsManager {
     public void handleSettingsAction(Long chatId, Long userId, Integer messageId, String action, String callbackId) {
         UserSettings settings = userSettings.get(userId);
         switch (action) {
-            case "settings_toggle_field" -> {
+            case ACTION_SETTINGS_TOGGLE_FIELD -> {
                 settings.getFieldBoolean()
                         .setValue(!settings.getFieldBoolean()
                                 .getValue());
-                navigationManager.saveNavigationState(chatId, "SETTINGS", "settings_toggle_field");
+                navigationManager.saveNavigationState(chatId, MENU_SETTINGS, ACTION_SETTINGS_TOGGLE_FIELD);
                 showSettingsMenu(chatId, userId, messageId);
             }
             case "settings_reset" -> {
                 userSettings.put(userId, new UserSettings());
                 bot.showNotification(callbackId, "✅ Настройки сброшены к значениям по умолчанию");
-                navigationManager.saveNavigationState(chatId, "SETTINGS", null);
+                navigationManager.saveNavigationState(chatId, MENU_SETTINGS, null);
                 //TODO
             }
             case "settings_save" -> {
                 bot.showNotification(callbackId, "✅ Настройки сохранены");
-                navigationManager.saveNavigationState(chatId, "SETTINGS", null);
+                navigationManager.saveNavigationState(chatId, MENU_SETTINGS, null);
                 //TODO
+            }
+            default -> {
+                logger.warn("Action not fefined {}", action);
             }
         }
     }
 
     private String getCurrentSettingsText(UserSettings settings) {
         StringBuilder str = new StringBuilder();
-        str.append(String.format("\uD83D\uDCA1 Значение: %b\n\n", settings.getFieldBoolean()
+        str.append(String.format("\uD83D\uDCA1 Значение: %b \n\n", settings.getFieldBoolean()
                 .getValue()));
         return str.toString();
     }
@@ -94,7 +101,7 @@ public class UserSettingsManager {
 
         List<InlineKeyboardButton> row1 = new ArrayList<>();
         row1.add(new KeyboardButton((settings.getFieldBoolean()
-                .getValue() ? "✅ " : "❌ ") + "Пример настройки (boolean)", "settings_toggle_field"));
+                .getValue() ? "✅ " : "❌ ") + "Пример настройки (boolean)", ACTION_SETTINGS_TOGGLE_FIELD));
         rows.add(row1);
 
         List<InlineKeyboardButton> row3 = new ArrayList<>();
