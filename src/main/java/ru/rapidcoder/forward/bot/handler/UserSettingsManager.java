@@ -78,14 +78,13 @@ public class UserSettingsManager {
                 navigationManager.saveNavigationState(chatId, "SETTINGS", null);
                 //TODO
             }
-            default -> {
-
-            }
         }
     }
 
     private String getCurrentSettingsText(UserSettings settings) {
         StringBuilder str = new StringBuilder();
+        str.append(String.format("\uD83D\uDCA1 Значение: %b\n\n", settings.getFieldBoolean()
+                .getValue()));
         return str.toString();
     }
 

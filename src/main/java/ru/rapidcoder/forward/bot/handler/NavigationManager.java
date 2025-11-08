@@ -13,14 +13,17 @@ public class NavigationManager {
     public static final String KEY_CONTEXT = "context";
     public static final String DEFAULT_STATE = "MAIN";
     private static final Logger logger = LoggerFactory.getLogger(NavigationManager.class);
-    private static final NavigationManager instance = new NavigationManager();
     private static final String DB_URL = "jdbc:sqlite://tmp/menu_bot.db";
+    private static NavigationManager instance = new NavigationManager();
 
     private NavigationManager() {
         initDataBase();
     }
 
-    public static NavigationManager getInstance() {
+    public static synchronized NavigationManager getInstance() {
+        if (instance == null) {
+            instance = new NavigationManager();
+        }
         return instance;
     }
 
@@ -56,8 +59,8 @@ public class NavigationManager {
 
             if (rs.next()) {
                 Map<String, String> state = new HashMap<>();
-                state.put(KEY_STATE, rs.getString("state"));
-                state.put(KEY_CONTEXT, rs.getString("context"));
+                state.put(KEY_STATE, rs.getString(KEY_STATE));
+                state.put(KEY_CONTEXT, rs.getString(KEY_CONTEXT));
                 return Collections.unmodifiableMap(state);
             }
         } catch (SQLException e) {
