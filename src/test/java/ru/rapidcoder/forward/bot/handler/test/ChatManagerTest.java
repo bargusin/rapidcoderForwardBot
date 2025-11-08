@@ -33,28 +33,22 @@ public class ChatManagerTest {
             chatManager.saveOrUpdateChat(null);
         });
 
+        MonitorChat failChat = new MonitorChat();
         assertThrows(NullPointerException.class, () -> {
-            MonitorChat failChat = new MonitorChat();
             chatManager.saveOrUpdateChat(failChat);
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            MonitorChat failChat = new MonitorChat();
             failChat.setChatId(1L);
             chatManager.saveOrUpdateChat(failChat);
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            MonitorChat failChat = new MonitorChat();
-            failChat.setChatId(1L);
             failChat.setChatType("channel");
             chatManager.saveOrUpdateChat(failChat);
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            MonitorChat failChat = new MonitorChat();
-            failChat.setChatId(1L);
-            failChat.setChatType("channel");
             failChat.setChatTitle("TestChannel");
             chatManager.saveOrUpdateChat(failChat);
         });
