@@ -90,9 +90,7 @@ jobs:
             -Dsonar.pullrequest.base=${{ github.event.pull_request.base.ref }} \
             -Dsonar.pullrequest.provider=github \
             -Dsonar.pullrequest.github.repository=${{ github.repository }} \
-            -Dsonar.qualitygate.wait=true \
-            -Dsonar.qualitygate.ignore=INFO,MINOR \
-            -Dsonar.issues.fail.quality.gate.minSeverity=MAJOR
+            -Dsonar.qualitygate.wait=true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
