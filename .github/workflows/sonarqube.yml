@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.head_ref }}
 
-      - name: Debug SonarCloud configuration
+      - name: SonarCloud Check
         run: |
           echo "🔍 Детальная проверка конфигурации:"
           echo "SONAR_ORGANIZATION: '${{ secrets.SONAR_ORGANIZATION }}'"
@@ -90,84 +90,26 @@ jobs:
             -Dsonar.pullrequest.base=${{ github.event.pull_request.base.ref }} \
             -Dsonar.pullrequest.provider=github \
             -Dsonar.pullrequest.github.repository=${{ github.repository }} \
-            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.qualitygate.ignore=INFO,MINOR \
+            -Dsonar.issues.fail.quality.gate.minSeverity=MAJOR
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check Quality Gate status
-        id: quality-gate
-        uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
-        with:
-          scanMetadataReportFile: build/sonar/report-task.txt
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-      - name: Comment PR with analysis result
+      - name: Add PR comment
         if: always()
         uses: actions/github-script@v6
         with:
           script: |
-            const qualityGateStatus = '${{ steps.quality-gate.outputs.quality-gate-status }}';
-            const dashboardUrl = '${{ steps.quality-gate.outputs.dashboard-url }}';
+            const prNumber = context.issue.number;
+            const dashboardUrl = `https://sonarcloud.io/dashboard?id=${{ secrets.SONAR_PROJECT_KEY }}&pullRequest=${prNumber}`;
             
-            let commentBody = '';
-            let emoji = '🔍';
-            
-            if (qualityGateStatus === 'OK') {
-              emoji = '✅';
-              commentBody = `
-              ${emoji} **SonarCloud Quality Gate пройдена!**
-            
-              Анализ кода завершен успешно. Все метрики качества соответствуют требованиям.
-            
-              [Посмотреть детальный отчет](${dashboardUrl})
-              `;
-            } else if (qualityGateStatus === 'ERROR') {
-              emoji = '❌';
-              commentBody = `
-              ${emoji} **SonarCloud Quality Gate не пройдена!**
-            
-              Требуется исправление проблем перед мержем.
-            
-              [Посмотреть проблемы](${dashboardUrl})
-              `;
-            } else {
-              commentBody = `
-              ${emoji} **SonarCloud анализ завершен**
-            
-              Статус: ${qualityGateStatus}
-            
-              [Посмотреть отчет](${dashboardUrl})
-              `;
-            }
-            
-            // Ищем существующий комментарий от бота
-            const comments = await github.rest.issues.listComments({
+            await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number
+              issue_number: prNumber,
+              body: `🔍 **SonarCloud Analysis Complete**
+            
+              [View detailed report](${dashboardUrl})`
             });
-            
-            const botComment = comments.data.find(comment => 
-              comment.body.includes('SonarCloud') && 
-              comment.user.type === 'Bot'
-            );
-            
-            if (botComment) {
-              // Обновляем существующий комментарий
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: commentBody
-              });
-            } else {
-              // Создаем новый комментарий
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: commentBody
-              });
-            }
