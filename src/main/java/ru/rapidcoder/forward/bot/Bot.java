@@ -13,6 +13,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.component.KeyboardButton;
+import ru.rapidcoder.forward.bot.component.MonitorChat;
 import ru.rapidcoder.forward.bot.handler.MessageHandler;
 
 import java.util.ArrayList;
@@ -21,6 +22,8 @@ import java.util.List;
 public class Bot extends TelegramLongPollingBot {
 
     private static final Logger logger = LoggerFactory.getLogger(Bot.class);
+    public static final String BACK_TO_MAIN_CALLBACK_DATA = "back_to_main";
+
     private final String botName;
     private final MessageHandler messageHandler;
 
@@ -78,7 +81,7 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     public void showMainMenu(Long chatId, Integer messageId) {
-        String text = "*Выбор действия*\n";
+        String text = "*\uD83C\uDFE0 Главное меню*";
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
@@ -93,6 +96,28 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
+    public void showChatsMenu(Long chatId, Integer messageId, List<MonitorChat> chats) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("*Доступные каналы*\n\n");
+
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        for (MonitorChat chat : chats) {
+            sb.append(String.format("Канал '%s', тип: '%s', роль: '%s'%n", chat.getChatTitle(), chat.getChatType(), chat.getBotStatus()));
+        }
+
+        rows.add(List.of(new KeyboardButton("\uD83D\uDCE2 Выгрузить данные о подписках", "menu_chats_upload")));
+        rows.add(List.of(new KeyboardButton("\uD83C\uDFE0 Главное меню", BACK_TO_MAIN_CALLBACK_DATA)));
+        keyboard.setKeyboard(rows);
+
+        if (messageId != null) {
+            updateMessage(chatId, messageId, sb.toString(), keyboard);
+        } else {
+            sendMessage(chatId, sb.toString(), keyboard);
+        }
+    }
+
     public void showHelpMenu(Long chatId, Integer messageId) {
         String text = """
                 \uD83D\uDCAC *Помощь по боту*
@@ -102,12 +127,39 @@ public class Bot extends TelegramLongPollingBot {
                 
                 Описание работы бота""";
 
-        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(List.of(List.of(new KeyboardButton("\uD83C\uDFE0 Главное меню", "back_to_main"))));
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(List.of(List.of(new KeyboardButton("\uD83C\uDFE0 Главное меню", BACK_TO_MAIN_CALLBACK_DATA))));
         if (messageId != null) {
             updateMessage(chatId, messageId, text, keyboard);
         } else {
             sendMessage(chatId, text, keyboard);
         }
+    }
+
+    public void showSettingsMenu(Long chatId, Integer messageId) {
+        String text = "⚙\uFE0F *Настройки бота*\n";
+        if (messageId != null) {
+            updateMessage(chatId, messageId, text, createSettingsKeyboard());
+        } else {
+            sendMessage(chatId, text, createSettingsKeyboard());
+        }
+    }
+
+    private InlineKeyboardMarkup createSettingsKeyboard() {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        List<InlineKeyboardButton> row3 = new ArrayList<>();
+        row3.add(new KeyboardButton("🔄 Сбросить настройки", "settings_reset"));
+        row3.add(new KeyboardButton("💾 Сохранить", "settings_save"));
+        rows.add(row3);
+
+        List<InlineKeyboardButton> row4 = new ArrayList<>();
+        row4.add(new KeyboardButton("\uD83C\uDFE0 Главное меню", BACK_TO_MAIN_CALLBACK_DATA));
+        rows.add(row4);
+
+        markup.setKeyboard(rows);
+
+        return markup;
     }
 
     public void sendMessage(Long chatId, String text, InlineKeyboardMarkup keyboard) {
