@@ -17,6 +17,7 @@ gradlew.bat
 gradlew
 .gradle/
 build/
+reports
 out
 .DS_Store
 *.iml

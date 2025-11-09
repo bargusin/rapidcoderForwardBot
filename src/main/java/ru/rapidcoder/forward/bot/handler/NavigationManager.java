@@ -1,90 +1,79 @@
 package ru.rapidcoder.forward.bot.handler;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import ru.rapidcoder.forward.bot.component.ChatState;
 
-import java.sql.*;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Optional;
 
 public class NavigationManager {
-    public static final String KEY_STATE = "state";
-    public static final String KEY_CONTEXT = "context";
-    public static final String DEFAULT_STATE = "MAIN";
-    private static final Logger logger = LoggerFactory.getLogger(NavigationManager.class);
-    private static final String DB_URL = "jdbc:sqlite://tmp/menu_bot.db";
-    private static NavigationManager instance = new NavigationManager();
 
-    private NavigationManager() {
-        initDataBase();
+    private final NavigationStorage storage;
+
+    public NavigationManager(String storageFile) {
+        this.storage = NavigationStorage.getInstance(storageFile);
     }
 
-    public static synchronized NavigationManager getInstance() {
-        if (instance == null) {
-            instance = new NavigationManager();
-        }
-        return instance;
+    /**
+     * Сохранить состояния меню бота
+     *
+     * @param chatId идентификатор чата
+     * @param state состояние
+     */
+    public void setState(Long chatId, String state) {
+        ChatState chatState = new ChatState(chatId, state, null);
+        storage.saveNavigationState(chatState);
     }
 
-    private static void initDataBase() {
-        try (Connection conn = DriverManager.getConnection(DB_URL); Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE IF NOT EXISTS navigation_history (chat_id INTEGER PRIMARY KEY, state TEXT NOT NULL, context TEXT, updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
-
-            logger.info("Navigation database initialized successfully");
-        } catch (SQLException e) {
-            logger.error("Failed to initialize navigation database: {}", e.getMessage(), e);
-        }
+    /**
+     * Сохранить состояния меню бота
+     *
+     * @param chatId идентификатор чата
+     * @param state состояние
+     * @param context контекст
+     */
+    public void setState(Long chatId, String state, String context) {
+        ChatState chatState = new ChatState(chatId, state, context);
+        storage.saveNavigationState(chatState);
     }
 
-    public void saveNavigationState(long chatId, String state, String context) {
-        try (Connection conn = DriverManager.getConnection(DB_URL); PreparedStatement stmt = conn.prepareStatement("INSERT OR REPLACE INTO navigation_history (chat_id, state, context) VALUES (?, ?, ?)")) {
-
-            stmt.setLong(1, chatId);
-            stmt.setString(2, state);
-            stmt.setString(3, context);
-            stmt.executeUpdate();
-
-            logger.debug("Saved navigation state for user {}: state={}, context={}", chatId, state, context);
-        } catch (SQLException e) {
-            logger.error("Failed to save navigation state for chat {}: {}", chatId, e.getMessage(), e);
-        }
+    /**
+     * Получить состояние меню бота
+     *
+     * @param chatId идентификатор чата
+     * @return состояние
+     */
+    public Optional<String> getState(Long chatId) {
+        return storage.getNavigationState(chatId)
+                .map(ChatState::getState);
     }
 
-    public Map<String, String> getNavigationState(long chatId) {
-        try (Connection conn = DriverManager.getConnection(DB_URL); PreparedStatement stmt = conn.prepareStatement("SELECT state, context FROM navigation_history WHERE chat_id = ? LIMIT 1")) {
-
-            stmt.setLong(1, chatId);
-            ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                Map<String, String> state = new HashMap<>();
-                state.put(KEY_STATE, rs.getString(KEY_STATE));
-                state.put(KEY_CONTEXT, rs.getString(KEY_CONTEXT));
-                return Collections.unmodifiableMap(state);
-            }
-        } catch (SQLException e) {
-            logger.error("Failed to get navigation state for chat {}: {}", chatId, e.getMessage(), e);
-        }
-
-        // Возвращаем состояние по умолчанию
-        Map<String, String> defaultState = new HashMap<>();
-        defaultState.put(KEY_STATE, DEFAULT_STATE);
-        defaultState.put(KEY_CONTEXT, null);
-        return defaultState;
+    /**
+     * Получить контекст меню бота
+     *
+     * @param chatId идентификатор чата
+     * @return контекст
+     */
+    public Optional<String> getContext(Long chatId) {
+        return storage.getNavigationState(chatId)
+                .map(ChatState::getContext);
     }
 
-    public void clearNavigationState(long chatId) {
-        String sql = "DELETE FROM navigation_history WHERE chat_id = ?";
+    /**
+     * Сбросить состояние меню бота
+     *
+     * @param chatId идентификатор бота
+     */
+    public void clearState(Long chatId) {
+        storage.clearNavigationState(chatId);
+    }
 
-        try (Connection conn = DriverManager.getConnection(DB_URL); PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setLong(1, chatId);
-            stmt.executeUpdate();
-            logger.debug("Cleared navigation state for chat {}", chatId);
-
-        } catch (SQLException e) {
-            logger.error("Failed to clear navigation state for chat {}: {}", chatId, e.getMessage(), e);
-        }
+    /**
+     * Проверить, есть ли сохраненное состояние меню бота
+     *
+     * @param chatId идентификатор чата
+     * @return признак наличия сохраненного состояния
+     */
+    public boolean hasState(Long chatId) {
+        return storage.getNavigationState(chatId)
+                .isPresent();
     }
 }
