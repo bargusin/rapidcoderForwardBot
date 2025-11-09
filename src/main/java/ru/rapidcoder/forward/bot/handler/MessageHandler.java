@@ -6,14 +6,10 @@ import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.ChatMemberUpdated;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.rapidcoder.forward.bot.Bot;
-import ru.rapidcoder.forward.bot.component.MonitorChat;
-
-import java.util.List;
 
 public class MessageHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(MessageHandler.class);
-    private final UserSettingsManager userSettingsManager;
     private final NavigationManager navigationManager;
     private final ChatManager chatManager;
     private final Bot bot;
@@ -22,7 +18,7 @@ public class MessageHandler {
         String environment = System.getenv("botEnv") != null ? System.getenv("botEnv") : "dev";
         navigationManager = new NavigationManager(System.getenv(environment + "MenuStorageFile"));
         chatManager = new ChatManager(System.getenv(environment + "ChatStorageFile"));
-        userSettingsManager = new UserSettingsManager(bot);
+
         this.bot = bot;
     }
 
@@ -37,12 +33,7 @@ public class MessageHandler {
         } else if ("/help".equals(messageText)) {
             bot.showHelpMenu(chatId, null);
         } else if ("/settings".equals(messageText)) {
-            userSettingsManager.showSettingsMenu(chatId, null);
-        } else if (userSettingsManager.isChangingSettings(chatId)) {
-            String callbackId = update.getCallbackQuery()
-                    .getId();
-            // Если пользователь вводит текст, проверяем, не ожидаем ли мы ввод нового значения настройки
-            userSettingsManager.handleTextInput(chatId, callbackId, messageText);
+            bot.showSettingsMenu(chatId, null);
         }
     }
 
@@ -58,10 +49,6 @@ public class MessageHandler {
                 .getMessage()
                 .getMessageId();
 
-        if (callbackData.startsWith("settings_")) {
-            userSettingsManager.handleSettingsAction(chatId, messageId, callbackData, callbackId);
-        }
-
         switch (callbackData) {
             case "menu_help" -> {
                 navigationManager.setState(chatId, "HELP");
@@ -73,14 +60,19 @@ public class MessageHandler {
             }
             case "menu_settings" -> {
                 navigationManager.setState(chatId, "SETTINGS");
-                userSettingsManager.showSettingsMenu(chatId, messageId);
+                bot.showSettingsMenu(chatId, messageId);
             }
             case "menu_chats" -> {
                 navigationManager.setState(chatId, "CHATS");
-                List<MonitorChat> chats = chatManager.getAll();
-                for (MonitorChat chat : chats) {
-                    logger.info("Chat: {}", chat);
-                }
+                bot.showChatsMenu(chatId, messageId, chatManager.getAll());
+            }
+            case "settings_reset" -> {
+                bot.showNotification(callbackId, "✅ Настройки сброшены к значениям по умолчанию");
+                //TODO
+            }
+            case "settings_save" -> {
+                bot.showNotification(callbackId, "✅ Настройки сохранены");
+                //TODO
             }
             default -> {
                 logger.warn("Unknown callbackData {}", callbackData);

@@ -13,16 +13,21 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.component.KeyboardButton;
+import ru.rapidcoder.forward.bot.component.MonitorChat;
+import ru.rapidcoder.forward.bot.component.UserSettings;
 import ru.rapidcoder.forward.bot.handler.MessageHandler;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Bot extends TelegramLongPollingBot {
 
     private static final Logger logger = LoggerFactory.getLogger(Bot.class);
     private final String botName;
     private final MessageHandler messageHandler;
+    private final Map<Long, UserSettings> userSettings = new HashMap<>();
 
     public Bot(String botName, String tokenId) {
         super(tokenId);
@@ -78,7 +83,7 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     public void showMainMenu(Long chatId, Integer messageId) {
-        String text = "*Выбор действия*\n";
+        String text = "*\uD83C\uDFE0 Главное меню*";
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
@@ -90,6 +95,28 @@ public class Bot extends TelegramLongPollingBot {
             updateMessage(chatId, messageId, text, keyboard);
         } else {
             sendMessage(chatId, text, keyboard);
+        }
+    }
+
+    public void showChatsMenu(Long chatId, Integer messageId, List<MonitorChat> chats) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("*Доступные каналы*\n\n");
+
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        for (MonitorChat chat : chats) {
+            sb.append(String.format("Канал '%s', тип: '%s', роль: '%s'\n", chat.getChatTitle(), chat.getChatType(), chat.getBotStatus()));
+        }
+
+        rows.add(List.of(new KeyboardButton("\uD83D\uDCE2 Выгрузить данные о подписках", "menu_chats_upload")));
+        rows.add(List.of(new KeyboardButton("\uD83C\uDFE0 Главное меню", "back_to_main")));
+        keyboard.setKeyboard(rows);
+
+        if (messageId != null) {
+            updateMessage(chatId, messageId, sb.toString(), keyboard);
+        } else {
+            sendMessage(chatId, sb.toString(), keyboard);
         }
     }
 
@@ -108,6 +135,36 @@ public class Bot extends TelegramLongPollingBot {
         } else {
             sendMessage(chatId, text, keyboard);
         }
+    }
+
+    public void showSettingsMenu(Long chatId, Integer messageId) {
+        userSettings.putIfAbsent(chatId, new UserSettings());
+        UserSettings settings = userSettings.get(chatId);
+
+        String text = "⚙\uFE0F *Настройки бота*\n";
+        if (messageId != null) {
+            updateMessage(chatId, messageId, text, createSettingsKeyboard(settings));
+        } else {
+            sendMessage(chatId, text, createSettingsKeyboard(settings));
+        }
+    }
+
+    private InlineKeyboardMarkup createSettingsKeyboard(UserSettings settings) {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        List<InlineKeyboardButton> row3 = new ArrayList<>();
+        row3.add(new KeyboardButton("🔄 Сбросить настройки", "settings_reset"));
+        row3.add(new KeyboardButton("💾 Сохранить", "settings_save"));
+        rows.add(row3);
+
+        List<InlineKeyboardButton> row4 = new ArrayList<>();
+        row4.add(new KeyboardButton("\uD83C\uDFE0 Главное меню", "back_to_main"));
+        rows.add(row4);
+
+        markup.setKeyboard(rows);
+
+        return markup;
     }
 
     public void sendMessage(Long chatId, String text, InlineKeyboardMarkup keyboard) {

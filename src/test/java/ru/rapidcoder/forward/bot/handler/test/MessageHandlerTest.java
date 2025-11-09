@@ -2,116 +2,70 @@ package ru.rapidcoder.forward.bot.handler.test;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
-import org.telegram.telegrambots.meta.api.objects.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.telegram.telegrambots.meta.api.objects.Chat;
+import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.rapidcoder.forward.bot.Bot;
-import ru.rapidcoder.forward.bot.handler.ChatManager;
-import ru.rapidcoder.forward.bot.handler.UserSettingsManager;
+import ru.rapidcoder.forward.bot.handler.MessageHandler;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class MessageHandlerTest {
 
+    @InjectMocks
+    private MessageHandler messageHandler;
     @Mock
-    private UserSettingsManager userSettingsManager;
-    @Mock
-    private ChatManager chatManager;
-    @Spy
-    private Bot botSpy;
+    private Bot mockBot;
 
     @BeforeEach
     void setUp() {
-        Bot bot = new Bot("testBot", "testToken");
-        botSpy = spy(bot);
+
     }
 
-    @Test
-    void testHandleCommand() {
-        Update update = createTextUpdate(123L, 456L, "/start");
-        ArgumentCaptor<Update> messageCaptor = ArgumentCaptor.forClass(Update.class);
+    private Update createUpdateWithText(Long chatId, String text) {
+        Update update = new Update();
+        Message message = new Message();
+        Chat chat = new Chat();
+        chat.setId(chatId);
 
-        doNothing().when(botSpy)
-                .handleCommand(any());
+        message.setChat(chat);
+        message.setText(text);
+        update.setMessage(message);
 
-        botSpy.onUpdateReceived(update);
-
-        verify(botSpy, times(1)).handleCommand(messageCaptor.capture());
-
-        update = messageCaptor.getValue();
-        assertEquals("456", update.getMessage()
-                .getChatId()
-                .toString());
-        assertTrue(update.getMessage()
-                .getText()
-                .contains("/start"));
-    }
-
-    @Test
-    void testHandleCallback() {
-        Update update = createCallbackUpdate(123L, 456L, 789, "menu_settings");
-        ArgumentCaptor<Update> messageCaptor = ArgumentCaptor.forClass(Update.class);
-
-        doNothing().when(botSpy)
-                .handleCallback(any());
-
-        botSpy.onUpdateReceived(update);
-
-        verify(botSpy, times(1)).handleCallback(messageCaptor.capture());
-
-        update = messageCaptor.getValue();
-        assertEquals("456", update.getMessage()
-                .getChatId()
-                .toString());
-    }
-
-    private Update createTextUpdate(Long userId, Long chatId, String text) {
-        Update update = mock(Update.class);
-        User user = mock(User.class);
-        Chat chat = mock(Chat.class);
-        Message message = mock(Message.class);
-
-        when(update.hasMessage()).thenReturn(true);
-        when(update.getMessage()).thenReturn(message);
-
-        when(message.hasText()).thenReturn(true);
-        when(message.getText()).thenReturn(text);
-        when(message.getChat()).thenReturn(chat);
-        when(message.getFrom()).thenReturn(user);
-        when(message.getChatId()).thenReturn(chatId);
-        when(message.getForwardDate()).thenReturn(null);
-
-        when(chat.getId()).thenReturn(chatId);
-        when(user.getId()).thenReturn(userId);
         return update;
     }
 
-    private Update createCallbackUpdate(Long userId, Long chatId, Integer messageId, String callbackData) {
-        Update update = mock(Update.class);
-        CallbackQuery callbackQuery = mock(CallbackQuery.class);
-        User user = mock(User.class);
-        Chat chat = mock(Chat.class);
-        Message message = mock(Message.class);
+    @Test
+    void testShowMainMenu() {
+        Update update = createUpdateWithText(1L, "/start");
+        messageHandler.handleCommand(update);
+        verify(mockBot).showMainMenu(1L, null);
+        verify(mockBot, never()).showMainMenu(2L, null);
 
-        when(update.hasCallbackQuery()).thenReturn(true);
-        when(update.getCallbackQuery()).thenReturn(callbackQuery);
-        when(update.getMessage()).thenReturn(message);
+        update = createUpdateWithText(1L, "/help");
+        messageHandler.handleCommand(update);
+        verify(mockBot).showMainMenu(1L, null);
+    }
 
-        when(callbackQuery.getData()).thenReturn(callbackData);
-        when(callbackQuery.getId()).thenReturn("test_callback_id");
-        when(callbackQuery.getFrom()).thenReturn(user);
-        when(callbackQuery.getMessage()).thenReturn(message);
+    @Test
+    void testShowHelpMenu() {
+        Update update = createUpdateWithText(1L, "/help");
+        messageHandler.handleCommand(update);
+        verify(mockBot, never()).showMainMenu(1L, null);
+        verify(mockBot).showHelpMenu(1L, null);
+    }
 
-        when(user.getId()).thenReturn(userId);
-
-        when(message.getChat()).thenReturn(chat);
-        when(message.getMessageId()).thenReturn(messageId);
-        when(message.getChatId()).thenReturn(chatId);
-        when(chat.getId()).thenReturn(chatId);
-
-        return update;
+    @Test
+    void testSettingsMenu() {
+        Update update = createUpdateWithText(1L, "/settings");
+        messageHandler.handleCommand(update);
+        verify(mockBot, never()).showMainMenu(1L, null);
+        //TODO
     }
 }
