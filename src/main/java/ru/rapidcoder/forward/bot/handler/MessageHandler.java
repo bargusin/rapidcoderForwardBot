@@ -5,7 +5,10 @@ import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.ChatMemberUpdated;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.Bot;
+
+import static ru.rapidcoder.forward.bot.Bot.BACK_TO_MAIN_CALLBACK_DATA;
 
 public class MessageHandler {
 
@@ -54,7 +57,7 @@ public class MessageHandler {
                 navigationManager.setState(chatId, "HELP");
                 bot.showHelpMenu(chatId, messageId);
             }
-            case "back_to_main" -> {
+            case BACK_TO_MAIN_CALLBACK_DATA -> {
                 navigationManager.setState(chatId, "MAIN");
                 bot.showMainMenu(chatId, messageId);
             }
@@ -65,6 +68,13 @@ public class MessageHandler {
             case "menu_chats" -> {
                 navigationManager.setState(chatId, "CHATS");
                 bot.showChatsMenu(chatId, messageId, chatManager.getAll());
+            }
+            case "menu_chats_upload" -> {
+                try {
+                    bot.execute(chatManager.uploadData(chatId));
+                } catch (TelegramApiException e) {
+                    logger.error(e.getMessage(), e);
+                }
             }
             case "settings_reset" -> {
                 bot.showNotification(callbackId, "✅ Настройки сброшены к значениям по умолчанию");

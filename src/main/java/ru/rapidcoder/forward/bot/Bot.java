@@ -22,7 +22,7 @@ import java.util.List;
 public class Bot extends TelegramLongPollingBot {
 
     private static final Logger logger = LoggerFactory.getLogger(Bot.class);
-    private static final String BACK_TO_MAIN_CALLBACK_DATA = "back_to_main";
+    public static final String BACK_TO_MAIN_CALLBACK_DATA = "back_to_main";
 
     private final String botName;
     private final MessageHandler messageHandler;
