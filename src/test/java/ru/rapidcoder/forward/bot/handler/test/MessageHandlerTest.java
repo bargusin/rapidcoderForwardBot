@@ -1,6 +1,5 @@
 package ru.rapidcoder.forward.bot.handler.test;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,11 +21,6 @@ public class MessageHandlerTest {
     private MessageHandler messageHandler;
     @Mock
     private Bot mockBot;
-
-    @BeforeEach
-    void setUp() {
-
-    }
 
     private Update createUpdateWithText(Long chatId, String text) {
         Update update = new Update();

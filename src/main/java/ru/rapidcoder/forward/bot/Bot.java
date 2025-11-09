@@ -26,7 +26,6 @@ public class Bot extends TelegramLongPollingBot {
 
     private final String botName;
     private final MessageHandler messageHandler;
-    //private final Map<Long, UserSettings> userSettings = new HashMap<>();
 
     public Bot(String botName, String tokenId) {
         super(tokenId);
@@ -137,9 +136,6 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     public void showSettingsMenu(Long chatId, Integer messageId) {
-        //        userSettings.putIfAbsent(chatId, new UserSettings());
-        //        UserSettings settings = userSettings.get(chatId);
-
         String text = "⚙\uFE0F *Настройки бота*\n";
         if (messageId != null) {
             updateMessage(chatId, messageId, text, createSettingsKeyboard());
