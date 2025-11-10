@@ -1,5 +1,6 @@
 package ru.rapidcoder.forward.bot.handler;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.rapidcoder.forward.bot.component.MonitorChat;
@@ -17,8 +18,11 @@ class ChatStorage {
     private final String storageFile;
 
     private ChatStorage(String storageFile) {
+        logger.info("Initializing ChatStorage with storage file: {}", storageFile);
+        if (StringUtils.isEmpty(storageFile)) {
+            throw new RuntimeException("Storage file not defined");
+        }
         this.storageFile = storageFile;
-
         initDataBase();
     }
 
@@ -57,7 +61,6 @@ class ChatStorage {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
             stmt.execute(triggerSql);
-
             logger.info("Chat's storage database initialized successfully");
         } catch (SQLException e) {
             logger.error("Failed to initialize chat's storage database: {}", e.getMessage(), e);
@@ -70,14 +73,13 @@ class ChatStorage {
                     (chat_id, chat_title, chat_type, bot_status)
                     VALUES (?, ?, ?, ?)
                 """;
-
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, chat.getChatId());
             stmt.setString(2, chat.getChatTitle());
             stmt.setString(3, chat.getChatType());
             stmt.setString(4, chat.getBotStatus());
             stmt.executeUpdate();
-            logger.info("Chat saved into database: {}", chat.getChatTitle());
+            logger.debug("Chat saved into database: {}", chat.getChatTitle());
         } catch (SQLException e) {
             throw new IllegalArgumentException(String.format("Failed to save chat by chatId %d", chat.getChatId()), e);
         }
@@ -90,7 +92,7 @@ class ChatStorage {
             stmt.setLong(1, chatId);
             int affectedRows = stmt.executeUpdate();
             if (affectedRows > 0) {
-                logger.info("Chat deleted from database: {}", +chatId);
+                logger.debug("Chat deleted from database: {}", +chatId);
             }
         } catch (SQLException e) {
             logger.error("Failed to delete chat by chatId {}: {}", chatId, e.getMessage(), e);
@@ -134,7 +136,7 @@ class ChatStorage {
             stmt.setString(1, newStatus);
             stmt.setLong(2, chatId);
             stmt.executeUpdate();
-            logger.info("Chat's staus modified: {}", chatId);
+            logger.debug("Chat's staus modified: {}", chatId);
         } catch (SQLException e) {
             logger.error("Failed to modify chat's status by chatId {}: {}", chatId, e.getMessage(), e);
         }

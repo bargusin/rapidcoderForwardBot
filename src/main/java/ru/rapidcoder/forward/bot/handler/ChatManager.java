@@ -10,7 +10,7 @@ import java.util.List;
 public class ChatManager {
 
     private final ChatStorage storage;
-    private String storageFile;
+    private final String storageFile;
 
     public ChatManager(String storageFile) {
         this.storageFile = storageFile;
@@ -21,8 +21,8 @@ public class ChatManager {
      * Сохранить информацию о канале/группе
      *
      * @param chatId идентификатор чата
-     * @param title название чата
-     * @param type тип чата
+     * @param title  название чата
+     * @param type   тип чата
      * @param status статус бота в чате
      */
     public void save(Long chatId, String title, String type, String status) {

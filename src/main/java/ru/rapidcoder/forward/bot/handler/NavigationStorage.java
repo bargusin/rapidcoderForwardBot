@@ -1,5 +1,6 @@
 package ru.rapidcoder.forward.bot.handler;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.rapidcoder.forward.bot.component.ChatState;
@@ -16,6 +17,10 @@ class NavigationStorage {
     private final String storageFile;
 
     private NavigationStorage(String storageFile) {
+        logger.info("Initializing NavigationStorage with storage file: {}", storageFile);
+        if (StringUtils.isEmpty(storageFile)) {
+            throw new RuntimeException("Storage file not defined");
+        }
         this.storageFile = storageFile;
         initDataBase();
     }
@@ -53,7 +58,6 @@ class NavigationStorage {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
             stmt.execute(triggerSql);
-
             logger.info("Navigation database initialized successfully");
         } catch (SQLException e) {
             logger.error("Failed to initialize navigation database: {}", e.getMessage(), e);
@@ -67,12 +71,10 @@ class NavigationStorage {
                     VALUES (?, ?, ?)
                 """;
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setLong(1, chatState.getChatId());
             stmt.setString(2, chatState.getState());
             stmt.setString(3, chatState.getContext());
             stmt.executeUpdate();
-
             logger.debug("Saved navigation state for chat {}: ", chatState);
         } catch (SQLException e) {
             throw new IllegalArgumentException(String.format("Failed to save navigation state for chatId %d", chatState.getChatId()), e);
@@ -84,7 +86,6 @@ class NavigationStorage {
                 SELECT chat_id, state, context, updated_at FROM navigation_history WHERE chat_id = ? LIMIT 1
                 """;
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setLong(1, chatId);
             ResultSet rs = stmt.executeQuery();
 
