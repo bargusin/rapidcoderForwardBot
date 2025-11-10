@@ -17,11 +17,9 @@ public class MessageHandler {
     private final ChatManager chatManager;
     private final Bot bot;
 
-    public MessageHandler(Bot bot) {
-        String environment = System.getenv("botEnv") != null ? System.getenv("botEnv") : "dev";
-        navigationManager = new NavigationManager(System.getenv(environment + "MenuStorageFile"));
-        chatManager = new ChatManager(System.getenv(environment + "ChatStorageFile"));
-
+    public MessageHandler(Bot bot, String storageFile) {
+        navigationManager = new NavigationManager(storageFile);
+        chatManager = new ChatManager(storageFile);
         this.bot = bot;
     }
 
@@ -101,7 +99,7 @@ public class MessageHandler {
                 .getStatus();
         Long chatId = chat.getId();
         String chatType = getChatType(chat);
-        logger.info("Bot's status changed from chat '{}' to '{}'", chat.getTitle(), status);
+        logger.debug("Bot's status changed from chat '{}' to '{}'", chat.getTitle(), status);
         switch (status) {
             case "administrator", "restricted":
                 chatManager.save(chatId, chat.getTitle(), chatType, status);
@@ -112,7 +110,7 @@ public class MessageHandler {
                 chatManager.delete(chatId);
                 break;
             default:
-                logger.info("Unknown status {}", status);
+                logger.warn("Unknown status {}", status);
                 break;
         }
     }
