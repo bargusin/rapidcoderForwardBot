@@ -19,7 +19,7 @@ class NavigationStorage {
     private NavigationStorage(String storageFile) {
         logger.info("Initializing NavigationStorage with storage file: {}", storageFile);
         if (StringUtils.isEmpty(storageFile)) {
-            throw new RuntimeException("Storage file not defined");
+            throw new IllegalArgumentException("Storage file not defined");
         }
         this.storageFile = storageFile;
         initDataBase();
