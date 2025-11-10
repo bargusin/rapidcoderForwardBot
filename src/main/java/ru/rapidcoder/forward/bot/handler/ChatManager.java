@@ -20,18 +20,24 @@ public class ChatManager {
     /**
      * Сохранить информацию о канале/группе
      *
-     * @param chatId идентификатор чата
-     * @param title  название чата
-     * @param type   тип чата
-     * @param status статус бота в чате
+     * @param chatId    идентификатор чата
+     * @param userId    идетификатор пользователя
+     * @param userName  имя пользователя
+     * @param title     название чата
+     * @param type      тип чата
+     * @param newStatus новый статус бота в чате
+     * @param oldStatus текущий статус бота в чате
      */
-    public void save(Long chatId, String title, String type, String status) {
+    public void save(Long chatId, Long userId, String userName, String title, String type, String newStatus, String oldStatus) {
         MonitorChat chat = new MonitorChat();
         chat.setChatId(chatId);
+        chat.setUserId(userId);
+        chat.setUserName(userName);
         chat.setChatTitle(title);
         chat.setChatType(type);
-        chat.setBotStatus(status);
-        storage.saveOrUpdateChat(chat);
+        chat.setBotNewStatus(newStatus);
+        chat.setBotOldStatus(oldStatus);
+        storage.saveOrUpdate(chat);
     }
 
     /**
@@ -50,17 +56,18 @@ public class ChatManager {
      * @param chatId идентификатор чата
      */
     public void delete(Long chatId) {
-        storage.deleteChat(chatId);
+        storage.delete(chatId);
     }
 
     /**
      * Обновить статус бота в канале/группе
      *
      * @param chatId идентификатор чата
-     * @param status новый статус бота
+     * @param newStatus новый статус бота
+     * @param oldStatus текущий статус бота
      */
-    public void updateStatus(Long chatId, String status) {
-        storage.updateBotStatus(chatId, status);
+    public void updateStatus(Long chatId, String newStatus, String oldStatus) {
+        storage.updateStatus(chatId, newStatus, oldStatus);
     }
 
     /**
@@ -69,7 +76,7 @@ public class ChatManager {
      * @return список каналов/групп подписки бота
      */
     public List<MonitorChat> getAll() {
-        return storage.getAllChats();
+        return storage.getAll();
     }
 
     public SendDocument uploadData(Long chatId) {

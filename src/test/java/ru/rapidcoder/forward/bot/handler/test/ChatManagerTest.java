@@ -30,30 +30,53 @@ public class ChatManagerTest {
     @Test
     void testSaveOrUpdate() {
         assertThrows(NullPointerException.class, () -> {
-            chatManager.save(null, null, null, null);
+            chatManager.save(null, null, null, null, null, null, null);
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            chatManager.save(1L, null, null, null);
+            chatManager.save(1L, null, null, null, null, null, null);
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            chatManager.save(1L, "TestChannel", null, null);
+            chatManager.save(1L, 2L, null, null, null, null, null);
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            chatManager.save(1L, "TestChannel", "channel", null);
+            chatManager.save(1L, 2L, "userName", null, null, null, null);
         });
 
-        chatManager.save(1L, "TestChannel", "channel", "administrator");
+        assertThrows(IllegalArgumentException.class, () -> {
+            chatManager.save(1L, 2L, "userName", "TestChannel", null, null, null);
+        });
 
+        assertThrows(IllegalArgumentException.class, () -> {
+            chatManager.save(1L, 2L, "userName", "TestChannel", "channel", null, null);
+        });
+
+        chatManager.save(1L, 2L, "userName", "TestChannel", "channel", "administrator", null);
         MonitorChat chat = chatManager.get(1L);
         assertThat(chat.getChatId()).isEqualTo(1L);
-        assertThat(chat.getChatType()).isEqualTo("channel");
+        assertThat(chat.getUserId()).isEqualTo(2L);
+        assertThat(chat.getUserName()).isEqualTo("userName");
         assertThat(chat.getChatTitle()).isEqualTo("TestChannel");
-        assertThat(chat.getBotStatus()).isEqualTo("administrator");
+        assertThat(chat.getChatType()).isEqualTo("channel");
+        assertThat(chat.getBotNewStatus()).isEqualTo("administrator");
+        assertThat(chat.getBotOldStatus()).isNull();
         assertThat(chat.getAddedDate()).isNotNull();
-        assertThat(chat.getLastActivity()).isNotNull();
+        assertThat(chat.getUpdatedDate()).isNotNull();
+        assertThat(chat.toString()).isNotNull();
+
+        chatManager.save(1L, 2L, "userName", "TestChannel", "channel", "left", "administrator");
+        chat = chatManager.get(1L);
+        assertThat(chat.getChatId()).isEqualTo(1L);
+        assertThat(chat.getUserId()).isEqualTo(2L);
+        assertThat(chat.getUserName()).isEqualTo("userName");
+        assertThat(chat.getChatTitle()).isEqualTo("TestChannel");
+        assertThat(chat.getChatType()).isEqualTo("channel");
+        assertThat(chat.getBotNewStatus()).isEqualTo("left");
+        assertThat(chat.getBotOldStatus()).isEqualTo("administrator");
+        assertThat(chat.getAddedDate()).isNotNull();
+        assertThat(chat.getUpdatedDate()).isNotNull();
         assertThat(chat.toString()).isNotNull();
 
         chat = chatManager.get(2L);
@@ -62,23 +85,27 @@ public class ChatManagerTest {
 
     @Test
     void testGetAll() {
-        chatManager.save(1L, "TestChannel", "channel", "administrator");
+        chatManager.save(1L, 2L, "userName", "TestChannel", "channel", "left", "administrator");
 
         List<MonitorChat> chats = chatManager.getAll();
         assertThat(chats.size()).isNotZero();
 
         MonitorChat chat = chats.get(0);
         assertThat(chat.getChatId()).isEqualTo(1L);
-        assertThat(chat.getChatType()).isEqualTo("channel");
+        assertThat(chat.getUserId()).isEqualTo(2L);
+        assertThat(chat.getUserName()).isEqualTo("userName");
         assertThat(chat.getChatTitle()).isEqualTo("TestChannel");
-        assertThat(chat.getBotStatus()).isEqualTo("administrator");
+        assertThat(chat.getChatType()).isEqualTo("channel");
+        assertThat(chat.getBotNewStatus()).isEqualTo("left");
+        assertThat(chat.getBotOldStatus()).isEqualTo("administrator");
         assertThat(chat.getAddedDate()).isNotNull();
-        assertThat(chat.getLastActivity()).isNotNull();
+        assertThat(chat.getUpdatedDate()).isNotNull();
+        assertThat(chat.toString()).isNotNull();
     }
 
     @Test
     void testDelete() {
-        chatManager.save(1L, "TestChannel", "channel", "administrator");
+        chatManager.save(1L, 2L, "userName", "TestChannel", "channel", "administrator", null);
 
         MonitorChat chat = chatManager.get(1L);
         assertThat(chat).isNotNull();
@@ -91,18 +118,22 @@ public class ChatManagerTest {
 
     @Test
     void testUpdateStatus() {
-        chatManager.save(1L, "TestChannel", "channel", "administrator");
+        chatManager.save(1L, 2L, "userName", "TestChannel", "channel", "left", "administrator");
 
         MonitorChat chat = chatManager.get(1L);
         assertThat(chat).isNotNull();
 
-        chatManager.updateStatus(1L, "left");
+        chatManager.updateStatus(1L, "left", "administrator");
 
         MonitorChat modifiedChat = chatManager.get(1L);
-        assertThat(modifiedChat.getChatId()).isEqualTo(1L);
-        assertThat(modifiedChat.getChatType()).isEqualTo("channel");
-        assertThat(modifiedChat.getChatTitle()).isEqualTo("TestChannel");
-        assertThat(modifiedChat.getBotStatus()).isEqualTo("left");
+        assertThat(modifiedChat.getChatId()).isEqualTo(chat.getChatId());
+        assertThat(modifiedChat.getUserId()).isEqualTo(chat.getUserId());
+        assertThat(modifiedChat.getChatTitle()).isEqualTo(chat.getChatTitle());
+        assertThat(modifiedChat.getChatType()).isEqualTo(chat.getChatType());
+        assertThat(modifiedChat.getBotNewStatus()).isEqualTo(chat.getBotNewStatus());
+        assertThat(modifiedChat.getBotOldStatus()).isEqualTo(chat.getBotOldStatus());
         assertThat(modifiedChat.getAddedDate()).isEqualTo(chat.getAddedDate());
+        assertThat(modifiedChat.getUpdatedDate()).isNotNull();
+        assertThat(modifiedChat.toString()).isNotNull();
     }
 }

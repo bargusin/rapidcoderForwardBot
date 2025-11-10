@@ -7,11 +7,14 @@ import java.time.LocalDateTime;
 public class MonitorChat {
 
     private Long chatId;
+    private Long userId;
+    private String userName;
     private String chatTitle;
     private String chatType;
-    private String botStatus;
+    private String botNewStatus;
+    private String botOldStatus;
     private LocalDateTime addedDate;
-    private LocalDateTime lastActivity;
+    private LocalDateTime updatedDate;
 
     public Long getChatId() {
         return chatId;
@@ -19,6 +22,22 @@ public class MonitorChat {
 
     public void setChatId(Long chatId) {
         this.chatId = chatId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 
     public String getChatTitle() {
@@ -37,12 +56,20 @@ public class MonitorChat {
         this.chatType = chatType;
     }
 
-    public String getBotStatus() {
-        return botStatus;
+    public String getBotNewStatus() {
+        return botNewStatus;
     }
 
-    public void setBotStatus(String botStatus) {
-        this.botStatus = botStatus;
+    public void setBotNewStatus(String botNewStatus) {
+        this.botNewStatus = botNewStatus;
+    }
+
+    public String getBotOldStatus() {
+        return botOldStatus;
+    }
+
+    public void setBotOldStatus(String botOldStatus) {
+        this.botOldStatus = botOldStatus;
     }
 
     public LocalDateTime getAddedDate() {
@@ -53,12 +80,12 @@ public class MonitorChat {
         this.addedDate = addedDate;
     }
 
-    public LocalDateTime getLastActivity() {
-        return lastActivity;
+    public LocalDateTime getUpdatedDate() {
+        return updatedDate;
     }
 
-    public void setLastActivity(LocalDateTime lastActivity) {
-        this.lastActivity = lastActivity;
+    public void setUpdatedDate(LocalDateTime updatedDate) {
+        this.updatedDate = updatedDate;
     }
 
     @Override

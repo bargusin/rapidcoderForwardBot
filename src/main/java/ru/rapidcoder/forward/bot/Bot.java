@@ -103,7 +103,7 @@ public class Bot extends TelegramLongPollingBot {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
         for (MonitorChat chat : chats) {
-            sb.append(String.format("Канал '%s', тип: '%s', роль: '%s'%n", chat.getChatTitle(), chat.getChatType(), chat.getBotStatus()));
+            sb.append(String.format("Канал '%s', тип: '%s', роль: '%s'%n", chat.getChatTitle(), chat.getChatType(), chat.getBotNewStatus()));
         }
 
         rows.add(List.of(new KeyboardButton("\uD83D\uDCE2 Выгрузить данные о подписках", "menu_chats_upload")));

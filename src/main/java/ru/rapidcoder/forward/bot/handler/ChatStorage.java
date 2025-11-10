@@ -38,17 +38,21 @@ class ChatStorage {
     }
 
     private void initDataBase() {
-        String sql = """
+        String sqlMonitoredChats = """
                 CREATE TABLE IF NOT EXISTS monitored_chats (
                     chat_id INTEGER PRIMARY KEY,
+                    user_id INTEGER PRIMARY KEY,
+                    user_name TEXT NOT NULL,
                     chat_title TEXT NOT NULL,
                     chat_type TEXT NOT NULL,
-                    bot_status TEXT NOT NULL,
+                    bot_new_status TEXT NOT NULL,
+                    bot_old_status TEXT,
+                    deleted INTEGER DEFAULT 0,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
                 """;
-        String triggerSql = """
+        String sqlTriggerMonitoredChats = """
                 CREATE TRIGGER IF NOT EXISTS update_timestamp
                 AFTER UPDATE ON monitored_chats
                 FOR EACH ROW
@@ -58,38 +62,67 @@ class ChatStorage {
                     WHERE chat_id = NEW.chat_id;
                 END;
                 """;
+        String sqlHistoryMonitoredChats = """
+                CREATE TABLE IF NOT EXISTS history_monitored_chats (
+                    chat_id INTEGER PRIMARY KEY,
+                    user_id INTEGER PRIMARY KEY,
+                    user_name TEXT NOT NULL,
+                    chat_title TEXT NOT NULL,
+                    chat_type TEXT NOT NULL,
+                    bot_new_status TEXT NOT NULL,
+                    bot_old_status TEXT,
+                    deleted INTEGER,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+                """;
+        String sqlTriggerHistoryMonitoredChats = """
+                CREATE TRIGGER log_chat_history
+                AFTER INSERT OR UPDATE ON monitored_chats
+                BEGIN
+                    INSERT INTO monitored_chats_history
+                    (chat_id, user_id, user_name, chat_title, chat_type, bot_new_status, bot_old_status, deleted)
+                    VALUES
+                    (NEW.chat_id, NEW.user_id, NEW.user_name, NEW.chat_title, NEW.chat_type, NEW.bot_new_status, NEW.bot_old_status, NEW.deleted);
+                END;
+                """;
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            stmt.execute(sql);
-            stmt.execute(triggerSql);
+            stmt.execute(sqlMonitoredChats);
+            stmt.execute(sqlTriggerMonitoredChats);
+            stmt.execute(sqlHistoryMonitoredChats);
+            stmt.execute(sqlTriggerHistoryMonitoredChats);
             logger.info("Chat's storage database initialized successfully");
         } catch (SQLException e) {
             logger.error("Failed to initialize chat's storage database: {}", e.getMessage(), e);
         }
     }
 
-    public void saveOrUpdateChat(MonitorChat chat) {
+    public void saveOrUpdate(MonitorChat chat) {
         String sql = """
                 INSERT OR REPLACE INTO monitored_chats
-                    (chat_id, chat_title, chat_type, bot_status)
-                    VALUES (?, ?, ?, ?)
+                    (chat_id, user_id, user_name, chat_title, chat_type, bot_new_status, bot_old_status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, chat.getChatId());
-            stmt.setString(2, chat.getChatTitle());
-            stmt.setString(3, chat.getChatType());
-            stmt.setString(4, chat.getBotStatus());
+            stmt.setLong(2, chat.getUserId());
+            stmt.setString(3, chat.getUserName());
+            stmt.setString(4, chat.getChatTitle());
+            stmt.setString(5, chat.getChatType());
+            stmt.setString(6, chat.getBotNewStatus());
+            stmt.setString(7, chat.getBotOldStatus());
             stmt.executeUpdate();
-            logger.debug("Chat saved into database: {}", chat.getChatTitle());
+            logger.debug("Information of chat '{}' saved into database", chat.getChatTitle());
         } catch (SQLException e) {
             throw new IllegalArgumentException(String.format("Failed to save chat by chatId %d", chat.getChatId()), e);
         }
     }
 
-    public void deleteChat(Long chatId) {
-        String sql = "DELETE FROM monitored_chats WHERE chat_id=?";
+    public void delete(Long chatId) {
+        String sql = "UPDATE monitored_chats SET deleted=? WHERE chat_id=?";
 
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setLong(1, chatId);
+            stmt.setInt(1, 1);
+            stmt.setLong(2, chatId);
             int affectedRows = stmt.executeUpdate();
             if (affectedRows > 0) {
                 logger.debug("Chat deleted from database: {}", +chatId);
@@ -99,11 +132,25 @@ class ChatStorage {
         }
     }
 
-    public List<MonitorChat> getAllChats() {
+    public List<MonitorChat> getAll() {
         List<MonitorChat> chats = new ArrayList<>();
-        String sql = "SELECT chat_id, chat_title, chat_type, bot_status, created_at, updated_at FROM monitored_chats";
-
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+        String sql = """
+            SELECT
+                chat_id,
+                user_id,
+                user_name,
+                chat_title,
+                chat_type,
+                bot_new_status,
+                bot_old_status,
+                created_at,
+                updated_at
+            FROM monitored_chats
+            WHERE deleted=?
+        """;
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, 0);
+            ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 MonitorChat chat = resultSetToChat(rs);
                 chats.add(chat);
@@ -115,10 +162,23 @@ class ChatStorage {
     }
 
     public MonitorChat findChatById(Long chatId) {
-        String sql = "SELECT chat_id, chat_title, chat_type, bot_status, created_at, updated_at FROM monitored_chats WHERE chat_id=?";
+        String sql = """
+            SELECT
+                chat_id,
+                user_id,
+                user_name,
+                chat_title,
+                chat_type,
+                bot_new_status,
+                bot_old_status,
+                created_at,
+                updated_at
+            FROM monitored_chats WHERE chat_id=? AND deleted=?
+        """;
 
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, chatId);
+            stmt.setInt(2, 0);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 return resultSetToChat(rs);
@@ -129,14 +189,15 @@ class ChatStorage {
         return null;
     }
 
-    public void updateBotStatus(Long chatId, String newStatus) {
-        String sql = "UPDATE monitored_chats SET bot_status=? WHERE chat_id=?";
+    public void updateStatus(Long chatId, String newStatus, String oldStatus) {
+        String sql = "UPDATE monitored_chats SET bot_new_status=?, bot_old_status=? WHERE chat_id=?";
 
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, newStatus);
-            stmt.setLong(2, chatId);
+            stmt.setString(2, oldStatus);
+            stmt.setLong(3, chatId);
             stmt.executeUpdate();
-            logger.debug("Chat's staus modified: {}", chatId);
+            logger.debug("Chat's status modified: {}", chatId);
         } catch (SQLException e) {
             logger.error("Failed to modify chat's status by chatId {}: {}", chatId, e.getMessage(), e);
         }
@@ -145,12 +206,15 @@ class ChatStorage {
     private MonitorChat resultSetToChat(ResultSet rs) throws SQLException {
         MonitorChat chat = new MonitorChat();
         chat.setChatId(rs.getLong("chat_id"));
+        chat.setUserId(rs.getLong("user_id"));
+        chat.setUserName(rs.getString("user_name"));
         chat.setChatTitle(rs.getString("chat_title"));
         chat.setChatType(rs.getString("chat_type"));
-        chat.setBotStatus(rs.getString("bot_status"));
+        chat.setBotNewStatus(rs.getString("bot_new_status"));
+        chat.setBotOldStatus(rs.getString("bot_old_status"));
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         chat.setAddedDate(LocalDateTime.parse(rs.getString("created_at"), formatter));
-        chat.setLastActivity(LocalDateTime.parse(rs.getString("updated_at"), formatter));
+        chat.setUpdatedDate(LocalDateTime.parse(rs.getString("updated_at"), formatter));
         return chat;
     }
 }
