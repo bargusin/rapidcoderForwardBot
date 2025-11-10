@@ -14,8 +14,9 @@ public class Main {
             String environment = System.getenv("botEnv") != null ? System.getenv("botEnv") : "dev";
             String botName = System.getenv(environment + "BotName");
             String tokenId = System.getenv(environment + "TokenId");
+            String storageFile = System.getenv(environment + "StorageFile");
             TelegramBotsApi telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
-            telegramBotsApi.registerBot(new Bot(botName, tokenId));
+            telegramBotsApi.registerBot(new Bot(botName, tokenId, storageFile));
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }

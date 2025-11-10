@@ -17,11 +17,9 @@ public class MessageHandler {
     private final ChatManager chatManager;
     private final Bot bot;
 
-    public MessageHandler(Bot bot) {
-        String environment = System.getenv("botEnv") != null ? System.getenv("botEnv") : "dev";
-        navigationManager = new NavigationManager(System.getenv(environment + "StorageFile"));
-        chatManager = new ChatManager(System.getenv(environment + "StorageFile"));
-
+    public MessageHandler(Bot bot, String storageFile) {
+        navigationManager = new NavigationManager(storageFile);
+        chatManager = new ChatManager(storageFile);
         this.bot = bot;
     }
 

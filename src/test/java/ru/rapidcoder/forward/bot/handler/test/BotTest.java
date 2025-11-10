@@ -3,11 +3,8 @@ package ru.rapidcoder.forward.bot.handler.test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Spy;
 import org.telegram.telegrambots.meta.api.objects.*;
 import ru.rapidcoder.forward.bot.Bot;
-import ru.rapidcoder.forward.bot.handler.MessageHandler;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -15,14 +12,11 @@ import static org.mockito.Mockito.*;
 
 public class BotTest {
 
-    @InjectMocks
-    private MessageHandler messageHandler;
-    @Spy
     private Bot botSpy;
 
     @BeforeEach
     void setUp() {
-        Bot bot = new Bot("testBot", "testToken");
+        Bot bot = new Bot("testBot", "testToken", "/tmp/test_storage.db");
         botSpy = spy(bot);
     }
 

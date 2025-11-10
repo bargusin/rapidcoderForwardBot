@@ -21,17 +21,16 @@ import java.util.List;
 
 public class Bot extends TelegramLongPollingBot {
 
-    private static final Logger logger = LoggerFactory.getLogger(Bot.class);
     public static final String BACK_TO_MAIN_CALLBACK_DATA = "back_to_main";
-
+    private static final Logger logger = LoggerFactory.getLogger(Bot.class);
     private final String botName;
     private final MessageHandler messageHandler;
 
-    public Bot(String botName, String tokenId) {
+    public Bot(String botName, String tokenId, String storageFile) {
         super(tokenId);
         this.botName = botName;
 
-        messageHandler = new MessageHandler(this);
+        messageHandler = new MessageHandler(this, storageFile);
     }
 
     @Override
@@ -121,10 +120,10 @@ public class Bot extends TelegramLongPollingBot {
     public void showHelpMenu(Long chatId, Integer messageId) {
         String text = """
                 \uD83D\uDCAC *Помощь по боту*
-                
+                                
                 *Основные команды:*
                 `/start` - Главное меню
-                
+                                
                 Описание работы бота""";
 
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(List.of(List.of(new KeyboardButton("\uD83C\uDFE0 Главное меню", BACK_TO_MAIN_CALLBACK_DATA))));
