@@ -41,7 +41,7 @@ class ChatStorage {
         String sqlMonitoredChats = """
                 CREATE TABLE IF NOT EXISTS monitored_chats (
                     chat_id INTEGER PRIMARY KEY,
-                    user_id INTEGER PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
                     user_name TEXT NOT NULL,
                     chat_title TEXT NOT NULL,
                     chat_type TEXT NOT NULL,
@@ -52,20 +52,25 @@ class ChatStorage {
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
                 """;
-        String sqlTriggerMonitoredChats = """
-                CREATE TRIGGER IF NOT EXISTS update_timestamp
+        String sqlMonitoredChatsUpdate = """
+                CREATE TRIGGER IF NOT EXISTS monitored_chats_update
                 AFTER UPDATE ON monitored_chats
                 FOR EACH ROW
                 BEGIN
                     UPDATE monitored_chats
                     SET updated_at = CURRENT_TIMESTAMP
                     WHERE chat_id = NEW.chat_id;
+
+                    INSERT INTO history_monitored_chats
+                    (chat_id, user_id, user_name, chat_title, chat_type, bot_new_status, bot_old_status, deleted)
+                    VALUES
+                    (NEW.chat_id, NEW.user_id, NEW.user_name, NEW.chat_title, NEW.chat_type, NEW.bot_new_status, NEW.bot_old_status, NEW.deleted);
                 END;
                 """;
         String sqlHistoryMonitoredChats = """
                 CREATE TABLE IF NOT EXISTS history_monitored_chats (
-                    chat_id INTEGER PRIMARY KEY,
-                    user_id INTEGER PRIMARY KEY,
+                    chat_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
                     user_name TEXT NOT NULL,
                     chat_title TEXT NOT NULL,
                     chat_type TEXT NOT NULL,
@@ -75,11 +80,11 @@ class ChatStorage {
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
                 """;
-        String sqlTriggerHistoryMonitoredChats = """
-                CREATE TRIGGER log_chat_history
-                AFTER INSERT OR UPDATE ON monitored_chats
+        String sqlTriggerMonitoredChatsInsert = """
+                CREATE TRIGGER IF NOT EXISTS monitored_chats_insert
+                AFTER INSERT ON monitored_chats
                 BEGIN
-                    INSERT INTO monitored_chats_history
+                    INSERT INTO history_monitored_chats
                     (chat_id, user_id, user_name, chat_title, chat_type, bot_new_status, bot_old_status, deleted)
                     VALUES
                     (NEW.chat_id, NEW.user_id, NEW.user_name, NEW.chat_title, NEW.chat_type, NEW.bot_new_status, NEW.bot_old_status, NEW.deleted);
@@ -87,9 +92,9 @@ class ChatStorage {
                 """;
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(sqlMonitoredChats);
-            stmt.execute(sqlTriggerMonitoredChats);
             stmt.execute(sqlHistoryMonitoredChats);
-            stmt.execute(sqlTriggerHistoryMonitoredChats);
+            stmt.execute(sqlMonitoredChatsUpdate);
+            stmt.execute(sqlTriggerMonitoredChatsInsert);
             logger.info("Chat's storage database initialized successfully");
         } catch (SQLException e) {
             logger.error("Failed to initialize chat's storage database: {}", e.getMessage(), e);

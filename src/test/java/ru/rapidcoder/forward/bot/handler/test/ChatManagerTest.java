@@ -33,7 +33,7 @@ public class ChatManagerTest {
             chatManager.save(null, null, null, null, null, null, null);
         });
 
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(NullPointerException.class, () -> {
             chatManager.save(1L, null, null, null, null, null, null);
         });
 
@@ -118,7 +118,7 @@ public class ChatManagerTest {
 
     @Test
     void testUpdateStatus() {
-        chatManager.save(1L, 2L, "userName", "TestChannel", "channel", "left", "administrator");
+        chatManager.save(1L, 2L, "userName", "TestChannel", "channel", "administrator", null);
 
         MonitorChat chat = chatManager.get(1L);
         assertThat(chat).isNotNull();
@@ -130,8 +130,8 @@ public class ChatManagerTest {
         assertThat(modifiedChat.getUserId()).isEqualTo(chat.getUserId());
         assertThat(modifiedChat.getChatTitle()).isEqualTo(chat.getChatTitle());
         assertThat(modifiedChat.getChatType()).isEqualTo(chat.getChatType());
-        assertThat(modifiedChat.getBotNewStatus()).isEqualTo(chat.getBotNewStatus());
-        assertThat(modifiedChat.getBotOldStatus()).isEqualTo(chat.getBotOldStatus());
+        assertThat(modifiedChat.getBotNewStatus()).isEqualTo("left");
+        assertThat(modifiedChat.getBotOldStatus()).isEqualTo("administrator");
         assertThat(modifiedChat.getAddedDate()).isEqualTo(chat.getAddedDate());
         assertThat(modifiedChat.getUpdatedDate()).isNotNull();
         assertThat(modifiedChat.toString()).isNotNull();
