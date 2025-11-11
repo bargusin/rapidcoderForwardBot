@@ -6,10 +6,12 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.ParseMode;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.component.KeyboardButton;
@@ -20,6 +22,8 @@ import ru.rapidcoder.forward.bot.handler.MessageHandler;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Bot extends TelegramLongPollingBot {
 
@@ -27,7 +31,7 @@ public class Bot extends TelegramLongPollingBot {
     private static final Logger logger = LoggerFactory.getLogger(Bot.class);
     private final String botName;
     private final MessageHandler messageHandler;
-    private Message messageForSend;
+    private final Map<Long, List<Message>> messagesForSend = new ConcurrentHashMap<>();
 
     public Bot(String botName, String tokenId, String storageFile) {
         super(tokenId);
@@ -65,6 +69,25 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
+    public void removeKeyboard(Long chatId) {
+        try {
+            SendMessage message = new SendMessage();
+            message.setChatId(chatId.toString());
+            message.setText("⌨️ Клавиатура удалена");
+
+            // Создаем объект для удаления клавиатуры
+            ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove();
+            keyboardRemove.setRemoveKeyboard(true);
+            keyboardRemove.setSelective(false); // Удалить для всех пользователей
+
+            message.setReplyMarkup(keyboardRemove);
+
+            execute(message);
+        } catch (TelegramApiException e) {
+            logger.error(e.getMessage(), e);
+        }
+    }
+
     public void handleCommand(Update update) {
         messageHandler.handleCommand(update);
     }
@@ -86,7 +109,7 @@ public class Bot extends TelegramLongPollingBot {
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
-        if (getMessageForSend() != null) {
+        if (!getMessagesForSend().isEmpty()) {
             rows.add(List.of(new KeyboardButton("✉\uFE0F Рассылка текущего сообщения", "menu_send")));
         }
         rows.add(List.of(new KeyboardButton("\uD83D\uDCE2 Подписка на каналы", "menu_chats"), new KeyboardButton("⚙\uFE0F Настройки", "menu_settings"), new KeyboardButton("\uD83D\uDCAC Помощь", "menu_help")));
@@ -249,11 +272,7 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
-    public Message getMessageForSend() {
-        return messageForSend;
-    }
-
-    public void setMessageForSend(Message messageForSend) {
-        this.messageForSend = messageForSend;
+    public Map<Long, List<Message>> getMessagesForSend() {
+        return messagesForSend;
     }
 }

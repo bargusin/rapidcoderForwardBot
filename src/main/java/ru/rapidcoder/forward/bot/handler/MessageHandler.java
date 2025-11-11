@@ -11,6 +11,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.Bot;
 import ru.rapidcoder.forward.bot.dto.ChatMembership;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -88,15 +89,24 @@ public class MessageHandler {
                 bot.showSendMenu(chatId, messageId, channelManager.getAll());
             }
             case "menu_send_message_clear" -> {
-                bot.setMessageForSend(null);
+                //bot.setMessageForSend(null);
                 bot.showMainMenu(chatId, messageId);
             }
             case "menu_send_message" -> {
                 List<ChatMembership> chats = channelManager.getAll();
                 for (ChatMembership chat : chats) {
                     logger.debug("Try send froward message into {}", chat.getChatId());
-                    sendForwardMessage(chat.getChatId().toString(), bot.getMessageForSend());
+                    List<Message> messages = bot.getMessagesForSend()
+                            .get(chatId);
+                    for (Message message : messages) {
+                        sendForwardMessage(chat.getChatId()
+                                .toString(), message);
+                    }
                 }
+                bot.showNotification(callbackId, "✅ Сообщение отправлено адресатам");
+
+                //bot.setMessageForSend(null);
+                bot.showMainMenu(chatId, messageId);
             }
             case "settings_reset" -> {
                 bot.showNotification(callbackId, "✅ Настройки сброшены к значениям по умолчанию");
@@ -115,9 +125,11 @@ public class MessageHandler {
     public void handleForwardMessage(Update update) {
         Message message = update.getMessage();
         logger.debug("Catch message for send with id={}", message.getMessageId());
-        bot.setMessageForSend(message);
         Long chatId = message.getChatId();
-        bot.showSendMenu(chatId, null, channelManager.getAll());
+        bot.getMessagesForSend()
+                .computeIfAbsent(chatId, k -> new ArrayList<>())
+                .add(message);
+        //bot.showSendMenu(chatId, null, channelManager.getAll());
     }
 
     public void handleChatMember(Update update) {
