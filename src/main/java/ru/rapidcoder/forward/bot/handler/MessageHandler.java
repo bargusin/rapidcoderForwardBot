@@ -2,12 +2,16 @@ package ru.rapidcoder.forward.bot.handler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.telegram.telegrambots.meta.api.methods.ForwardMessage;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.ChatMemberUpdated;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.Bot;
+import ru.rapidcoder.forward.bot.dto.ChatMembership;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -80,6 +84,20 @@ public class MessageHandler {
                     logger.error(e.getMessage(), e);
                 }
             }
+            case "menu_send" -> {
+                bot.showSendMenu(chatId, messageId, channelManager.getAll());
+            }
+            case "menu_send_message_clear" -> {
+                bot.setMessageForSend(null);
+                bot.showMainMenu(chatId, messageId);
+            }
+            case "menu_send_message" -> {
+                List<ChatMembership> chats = channelManager.getAll();
+                for (ChatMembership chat : chats) {
+                    logger.debug("Try send froward message into {}", chat.getChatId());
+                    sendForwardMessage(chat.getChatId().toString(), bot.getMessageForSend());
+                }
+            }
             case "settings_reset" -> {
                 bot.showNotification(callbackId, "✅ Настройки сброшены к значениям по умолчанию");
                 //TODO
@@ -95,7 +113,11 @@ public class MessageHandler {
     }
 
     public void handleForwardMessage(Update update) {
-        //TODO
+        Message message = update.getMessage();
+        logger.debug("Catch message for send with id={}", message.getMessageId());
+        bot.setMessageForSend(message);
+        Long chatId = message.getChatId();
+        bot.showSendMenu(chatId, null, channelManager.getAll());
     }
 
     public void handleChatMember(Update update) {
@@ -139,6 +161,19 @@ public class MessageHandler {
             return "private";
         }
         return "unknown";
+    }
+
+    private void sendForwardMessage(String chatId, Message originalMessage) {
+        ForwardMessage forwardMessage = new ForwardMessage();
+        forwardMessage.setChatId(chatId);
+        forwardMessage.setFromChatId(originalMessage.getChatId()
+                .toString());
+        forwardMessage.setMessageId(originalMessage.getMessageId());
+        try {
+            bot.execute(forwardMessage);
+        } catch (TelegramApiException e) {
+            logger.error(e.getMessage(), e);
+        }
     }
 
     private static class OptionalUtils {
