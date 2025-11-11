@@ -49,7 +49,6 @@ public class Bot extends TelegramLongPollingBot {
                         .getId();
                 long chatId = message.getChatId();
                 logger.debug("Обработка сообщения chatId={}, userId={}", chatId, userId);
-
                 if (message.getForwardDate() != null) {
                     handleForwardMessage(update);
                 } else if (message.hasText()) {
@@ -74,7 +73,7 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     public void handleForwardMessage(Update update) {
-        messageHandler.handleChatMember(update);
+        messageHandler.handleForwardMessage(update);
     }
 
     public void handleChatMember(Update update) {
@@ -99,7 +98,7 @@ public class Bot extends TelegramLongPollingBot {
 
     public void showChatsMenu(Long chatId, Integer messageId, List<ChatMembership> chats) {
         StringBuilder sb = new StringBuilder();
-        sb.append("*Доступные каналы*\n\n");
+        sb.append("\uD83D\uDCE2 *Подписка на каналы*\n\n");
 
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
@@ -108,8 +107,8 @@ public class Bot extends TelegramLongPollingBot {
             sb.append(String.format("Канал '%s', тип: '%s', роль: '%s'%n", chat.getChatTitle(), chat.getChatType(), chat.getBotNewStatus()));
         }
 
-        rows.add(List.of(new KeyboardButton("\uD83D\uDCE2 История подписок бота", "menu_chats_history")));
-        rows.add(List.of(new KeyboardButton("\uD83D\uDCE2 Выгрузить данные о подписках", "menu_chats_upload")));
+        rows.add(List.of(new KeyboardButton("\uD83D\uDCCB История подписок", "menu_chats_history")));
+        rows.add(List.of(new KeyboardButton("⬇\uFE0F Выгрузить данные о подписках", "menu_chats_upload")));
         rows.add(List.of(new KeyboardButton("\uD83C\uDFE0 Главное меню", BACK_TO_MAIN_CALLBACK_DATA)));
         keyboard.setKeyboard(rows);
 
@@ -122,7 +121,7 @@ public class Bot extends TelegramLongPollingBot {
 
     public void showChatsHistoryMenu(Long chatId, Integer messageId, List<HistoryChatMembership> chats) {
         StringBuilder sb = new StringBuilder();
-        sb.append("*История подписок*\n\n");
+        sb.append("\uD83D\uDCCB *История подписок*\n\n");
 
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
