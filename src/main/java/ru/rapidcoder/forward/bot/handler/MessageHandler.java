@@ -2,16 +2,18 @@ package ru.rapidcoder.forward.bot.handler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.telegram.telegrambots.meta.api.methods.ForwardMessage;
-import org.telegram.telegrambots.meta.api.objects.Chat;
-import org.telegram.telegrambots.meta.api.objects.ChatMemberUpdated;
-import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.methods.CopyMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
+import org.telegram.telegrambots.meta.api.objects.*;
+import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
+import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto;
+import org.telegram.telegrambots.meta.api.objects.media.InputMediaVideo;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.Bot;
 import ru.rapidcoder.forward.bot.dto.ChatMembership;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -98,10 +100,12 @@ public class MessageHandler {
                     logger.debug("Try send froward message into {}", chat.getChatId());
                     List<Message> messages = bot.getMessagesForSend()
                             .get(chatId);
-                    for (Message message : messages) {
-                        sendForwardMessage(chat.getChatId()
-                                .toString(), message);
-                    }
+                    //                    for (Message message : messages) {
+                    //                        sendForwardMessage(chat.getChatId()
+                    //                                .toString(), message);
+                    //                    }
+                    processMediaGroup(chat.getChatId()
+                            .toString(), messages);
                 }
                 bot.showNotification(callbackId, "✅ Сообщение отправлено адресатам");
 
@@ -175,16 +179,84 @@ public class MessageHandler {
         return "unknown";
     }
 
-    private void sendForwardMessage(String chatId, Message originalMessage) {
-        ForwardMessage forwardMessage = new ForwardMessage();
-        forwardMessage.setChatId(chatId);
-        forwardMessage.setFromChatId(originalMessage.getChatId()
-                .toString());
-        forwardMessage.setMessageId(originalMessage.getMessageId());
+    private void sendForwardMessage(String chatId, Message message) {
         try {
-            bot.execute(forwardMessage);
+            //            if (message.getForwardFromChat() != null) {
+            //                ForwardMessage forward = new ForwardMessage();
+            //                forward.setChatId(chatId);
+            //                forward.setFromChatId(message.getForwardFromChat().getId().toString());
+            //                forward.setMessageId(message.getForwardFromMessageId());
+            //                bot.execute(forward);
+            //            } else {
+            CopyMessage copy = new CopyMessage();
+            copy.setChatId(chatId);
+            copy.setFromChatId(message.getChatId()
+                    .toString());
+            copy.setMessageId(message.getMessageId());
+            bot.execute(copy);
+            //            }
         } catch (TelegramApiException e) {
             logger.error(e.getMessage(), e);
+        }
+    }
+
+    private void processMediaGroup(String chatId, List<Message> groupMessages) {
+        groupMessages.sort(Comparator.comparing(Message::getMessageId));
+
+        // Создаем медиа-группу
+        List<InputMedia> mediaList = new ArrayList<>();
+        String caption = null;
+
+        List<Message> textMessages = new ArrayList<>();
+
+        for (Message message : groupMessages) {
+            if (message.hasText()) {
+                textMessages.add(message);
+            } else {
+                if (message.hasPhoto()) {
+                    InputMediaPhoto photo = new InputMediaPhoto();
+                    List<PhotoSize> photos = message.getPhoto();
+                    photo.setMedia(photos.get(photos.size() - 1)
+                            .getFileId());
+                    photo.setParseMode("HTML");
+                    if (message.getCaption() != null && caption == null) {
+                        caption = message.getCaption();
+                        photo.setCaption(caption);
+                    }
+                    mediaList.add(photo);
+                } else if (message.hasVideo()) {
+                    InputMediaVideo video = new InputMediaVideo();
+                    video.setMedia(message.getVideo()
+                            .getFileId());
+                    video.setParseMode("HTML");
+                    if (message.getCaption() != null && caption == null) {
+                        caption = message.getCaption();
+                        video.setCaption(caption);
+                    }
+                    mediaList.add(video);
+                }
+            }
+        }
+
+        for (Message textMessage : textMessages) {
+            CopyMessage copyMessage = new CopyMessage();
+            copyMessage.setChatId(chatId);
+            copyMessage.setFromChatId(textMessage.getChatId()
+                    .toString());
+            copyMessage.setMessageId(textMessage.getMessageId());
+            try {
+                bot.execute(copyMessage);
+            } catch (TelegramApiException e) {
+                logger.error(e.getMessage(), e);
+            }
+        }
+        if (!mediaList.isEmpty()) {
+            SendMediaGroup mediaGroup = new SendMediaGroup(chatId, mediaList);
+            try {
+                bot.execute(mediaGroup);
+            } catch (TelegramApiException e) {
+                logger.error(e.getMessage(), e);
+            }
         }
     }
 
