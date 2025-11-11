@@ -1,6 +1,6 @@
 package ru.rapidcoder.forward.bot.handler;
 
-import ru.rapidcoder.forward.bot.component.ChatState;
+import ru.rapidcoder.forward.bot.dto.NavigationState;
 
 import java.util.Optional;
 
@@ -19,8 +19,8 @@ public class NavigationManager {
      * @param state состояние
      */
     public void setState(Long chatId, String state) {
-        ChatState chatState = new ChatState(chatId, state, null);
-        storage.saveNavigationState(chatState);
+        NavigationState navigationState = new NavigationState(chatId, state, null);
+        storage.saveNavigationState(navigationState);
     }
 
     /**
@@ -31,8 +31,8 @@ public class NavigationManager {
      * @param context контекст
      */
     public void setState(Long chatId, String state, String context) {
-        ChatState chatState = new ChatState(chatId, state, context);
-        storage.saveNavigationState(chatState);
+        NavigationState navigationState = new NavigationState(chatId, state, context);
+        storage.saveNavigationState(navigationState);
     }
 
     /**
@@ -43,7 +43,7 @@ public class NavigationManager {
      */
     public Optional<String> getState(Long chatId) {
         return storage.getNavigationState(chatId)
-                .map(ChatState::getState);
+                .map(NavigationState::getState);
     }
 
     /**
@@ -54,7 +54,7 @@ public class NavigationManager {
      */
     public Optional<String> getContext(Long chatId) {
         return storage.getNavigationState(chatId)
-                .map(ChatState::getContext);
+                .map(NavigationState::getContext);
     }
 
     /**

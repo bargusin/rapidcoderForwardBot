@@ -3,8 +3,8 @@ package ru.rapidcoder.forward.bot.handler.test;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import ru.rapidcoder.forward.bot.component.MonitorChat;
-import ru.rapidcoder.forward.bot.handler.ChatManager;
+import ru.rapidcoder.forward.bot.dto.ChatMembership;
+import ru.rapidcoder.forward.bot.handler.ChannelManager;
 
 import java.io.File;
 import java.util.List;
@@ -12,10 +12,10 @@ import java.util.List;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.Assert.assertThrows;
 
-public class ChatManagerTest {
+public class ChannelManagerTest {
 
     private static final String TEST_DB = "test_chat.db";
-    private ChatManager chatManager;
+    private ChannelManager channelManager;
 
     @BeforeAll
     static void cleanup() {
@@ -24,37 +24,37 @@ public class ChatManagerTest {
 
     @BeforeEach
     void setUp() {
-        chatManager = new ChatManager(TEST_DB);
+        channelManager = new ChannelManager(TEST_DB);
     }
 
     @Test
-    void testSaveOrUpdate() {
+    void testSaveOrUpdateChat() {
         assertThrows(NullPointerException.class, () -> {
-            chatManager.save(null, null, null, null, null, null, null);
+            channelManager.save(null, null, null, null, null, null, null);
         });
 
         assertThrows(NullPointerException.class, () -> {
-            chatManager.save(1L, null, null, null, null, null, null);
+            channelManager.save(1L, null, null, null, null, null, null);
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            chatManager.save(1L, 2L, null, null, null, null, null);
+            channelManager.save(1L, 2L, null, null, null, null, null);
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            chatManager.save(1L, 2L, "userName", null, null, null, null);
+            channelManager.save(1L, 2L, "userName", null, null, null, null);
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            chatManager.save(1L, 2L, "userName", "TestChannel", null, null, null);
+            channelManager.save(1L, 2L, "userName", "TestChannel", null, null, null);
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            chatManager.save(1L, 2L, "userName", "TestChannel", "channel", null, null);
+            channelManager.save(1L, 2L, "userName", "TestChannel", "channel", null, null);
         });
 
-        chatManager.save(1L, 2L, "userName", "TestChannel", "channel", "administrator", null);
-        MonitorChat chat = chatManager.get(1L);
+        channelManager.save(1L, 2L, "userName", "TestChannel", "channel", "administrator", null);
+        ChatMembership chat = channelManager.get(1L);
         assertThat(chat.getChatId()).isEqualTo(1L);
         assertThat(chat.getUserId()).isEqualTo(2L);
         assertThat(chat.getUserName()).isEqualTo("userName");
@@ -66,8 +66,8 @@ public class ChatManagerTest {
         assertThat(chat.getUpdatedDate()).isNotNull();
         assertThat(chat.toString()).isNotNull();
 
-        chatManager.save(1L, 2L, "userName", "TestChannel", "channel", "left", "administrator");
-        chat = chatManager.get(1L);
+        channelManager.save(1L, 2L, "userName", "TestChannel", "channel", "left", "administrator");
+        chat = channelManager.get(1L);
         assertThat(chat.getChatId()).isEqualTo(1L);
         assertThat(chat.getUserId()).isEqualTo(2L);
         assertThat(chat.getUserName()).isEqualTo("userName");
@@ -79,18 +79,18 @@ public class ChatManagerTest {
         assertThat(chat.getUpdatedDate()).isNotNull();
         assertThat(chat.toString()).isNotNull();
 
-        chat = chatManager.get(2L);
+        chat = channelManager.get(2L);
         assertThat(chat).isNull();
     }
 
     @Test
-    void testGetAll() {
-        chatManager.save(1L, 2L, "userName", "TestChannel", "channel", "left", "administrator");
+    void testGetAllChat() {
+        channelManager.save(1L, 2L, "userName", "TestChannel", "channel", "left", "administrator");
 
-        List<MonitorChat> chats = chatManager.getAll();
+        List<ChatMembership> chats = channelManager.getAll();
         assertThat(chats.size()).isNotZero();
 
-        MonitorChat chat = chats.get(0);
+        ChatMembership chat = chats.get(0);
         assertThat(chat.getChatId()).isEqualTo(1L);
         assertThat(chat.getUserId()).isEqualTo(2L);
         assertThat(chat.getUserName()).isEqualTo("userName");
@@ -104,28 +104,28 @@ public class ChatManagerTest {
     }
 
     @Test
-    void testDelete() {
-        chatManager.save(1L, 2L, "userName", "TestChannel", "channel", "administrator", null);
+    void testDeleteChat() {
+        channelManager.save(1L, 2L, "userName", "TestChannel", "channel", "administrator", null);
 
-        MonitorChat chat = chatManager.get(1L);
+        ChatMembership chat = channelManager.get(1L);
         assertThat(chat).isNotNull();
 
-        chatManager.delete(1L);
+        channelManager.delete(1L);
 
-        chat = chatManager.get(1L);
+        chat = channelManager.get(1L);
         assertThat(chat).isNull();
     }
 
     @Test
-    void testUpdateStatus() {
-        chatManager.save(1L, 2L, "userName", "TestChannel", "channel", "administrator", null);
+    void testUpdateBotStatus() {
+        channelManager.save(1L, 2L, "userName", "TestChannel", "channel", "administrator", null);
 
-        MonitorChat chat = chatManager.get(1L);
+        ChatMembership chat = channelManager.get(1L);
         assertThat(chat).isNotNull();
 
-        chatManager.updateStatus(1L, "left", "administrator");
+        channelManager.updateStatus(1L, "left", "administrator");
 
-        MonitorChat modifiedChat = chatManager.get(1L);
+        ChatMembership modifiedChat = channelManager.get(1L);
         assertThat(modifiedChat.getChatId()).isEqualTo(chat.getChatId());
         assertThat(modifiedChat.getUserId()).isEqualTo(chat.getUserId());
         assertThat(modifiedChat.getChatTitle()).isEqualTo(chat.getChatTitle());

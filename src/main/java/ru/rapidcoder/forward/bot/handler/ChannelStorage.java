@@ -3,7 +3,9 @@ package ru.rapidcoder.forward.bot.handler;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.rapidcoder.forward.bot.component.MonitorChat;
+import ru.rapidcoder.forward.bot.dto.BaseChatMembership;
+import ru.rapidcoder.forward.bot.dto.ChatMembership;
+import ru.rapidcoder.forward.bot.dto.HistoryChatMembership;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -11,13 +13,14 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-class ChatStorage {
-    private static final Logger logger = LoggerFactory.getLogger(ChatStorage.class);
+class ChannelStorage {
+    private static final Logger logger = LoggerFactory.getLogger(ChannelStorage.class);
     private static final String DB_URL = "jdbc:sqlite:";
-    private static ChatStorage instance;
+    private static ChannelStorage instance;
     private final String storageFile;
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    private ChatStorage(String storageFile) {
+    private ChannelStorage(String storageFile) {
         logger.info("Initializing ChatStorage with storage file: {}", storageFile);
         if (StringUtils.isEmpty(storageFile)) {
             throw new IllegalArgumentException("Storage file not defined");
@@ -26,9 +29,9 @@ class ChatStorage {
         initDataBase();
     }
 
-    public static synchronized ChatStorage getInstance(String storageFile) {
+    public static synchronized ChannelStorage getInstance(String storageFile) {
         if (instance == null) {
-            instance = new ChatStorage(storageFile);
+            instance = new ChannelStorage(storageFile);
         }
         return instance;
     }
@@ -101,7 +104,7 @@ class ChatStorage {
         }
     }
 
-    public void saveOrUpdate(MonitorChat chat) {
+    public void saveOrUpdateChat(ChatMembership chat) {
         String sql = """
                 INSERT OR REPLACE INTO monitored_chats
                     (chat_id, user_id, user_name, chat_title, chat_type, bot_new_status, bot_old_status)
@@ -122,7 +125,7 @@ class ChatStorage {
         }
     }
 
-    public void delete(Long chatId) {
+    public void deleteChat(Long chatId) {
         String sql = "UPDATE monitored_chats SET deleted=? WHERE chat_id=?";
 
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -137,27 +140,27 @@ class ChatStorage {
         }
     }
 
-    public List<MonitorChat> getAll() {
-        List<MonitorChat> chats = new ArrayList<>();
+    public List<ChatMembership> getAllChats() {
+        List<ChatMembership> chats = new ArrayList<>();
         String sql = """
-            SELECT
-                chat_id,
-                user_id,
-                user_name,
-                chat_title,
-                chat_type,
-                bot_new_status,
-                bot_old_status,
-                created_at,
-                updated_at
-            FROM monitored_chats
-            WHERE deleted=?
-        """;
+                    SELECT
+                        chat_id,
+                        user_id,
+                        user_name,
+                        chat_title,
+                        chat_type,
+                        bot_new_status,
+                        bot_old_status,
+                        created_at,
+                        updated_at
+                    FROM monitored_chats
+                    WHERE deleted=?
+                """;
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, 0);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
-                MonitorChat chat = resultSetToChat(rs);
+                ChatMembership chat = resultSetToChat(rs);
                 chats.add(chat);
             }
         } catch (SQLException e) {
@@ -166,20 +169,48 @@ class ChatStorage {
         return chats;
     }
 
-    public MonitorChat findChatById(Long chatId) {
+    public List<HistoryChatMembership> getHistoryChats() {
+        List<HistoryChatMembership> chats = new ArrayList<>();
         String sql = """
-            SELECT
-                chat_id,
-                user_id,
-                user_name,
-                chat_title,
-                chat_type,
-                bot_new_status,
-                bot_old_status,
-                created_at,
-                updated_at
-            FROM monitored_chats WHERE chat_id=? AND deleted=?
-        """;
+                    SELECT
+                        chat_id,
+                        user_id,
+                        user_name,
+                        chat_title,
+                        chat_type,
+                        bot_new_status,
+                        bot_old_status,
+                        created_at,
+                        deleted
+                    FROM history_monitored_chats
+                    ORDER BY created_at DESC LIMIT 20
+                """;
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                HistoryChatMembership chat = resultSetToHistoryChat(rs);
+                chats.add(chat);
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to get chats {}", e.getMessage(), e);
+        }
+        return chats;
+    }
+
+    public ChatMembership findChatById(Long chatId) {
+        String sql = """
+                    SELECT
+                        chat_id,
+                        user_id,
+                        user_name,
+                        chat_title,
+                        chat_type,
+                        bot_new_status,
+                        bot_old_status,
+                        created_at,
+                        updated_at
+                    FROM monitored_chats WHERE chat_id=? AND deleted=?
+                """;
 
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, chatId);
@@ -194,7 +225,7 @@ class ChatStorage {
         return null;
     }
 
-    public void updateStatus(Long chatId, String newStatus, String oldStatus) {
+    public void updateBotStatus(Long chatId, String newStatus, String oldStatus) {
         String sql = "UPDATE monitored_chats SET bot_new_status=?, bot_old_status=? WHERE chat_id=?";
 
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -208,8 +239,21 @@ class ChatStorage {
         }
     }
 
-    private MonitorChat resultSetToChat(ResultSet rs) throws SQLException {
-        MonitorChat chat = new MonitorChat();
+    private ChatMembership resultSetToChat(ResultSet rs) throws SQLException {
+        ChatMembership chat = new ChatMembership();
+        resultSetToBaseChat(rs, chat);
+        chat.setUpdatedDate(LocalDateTime.parse(rs.getString("updated_at"), formatter));
+        return chat;
+    }
+
+    private HistoryChatMembership resultSetToHistoryChat(ResultSet rs) throws SQLException {
+        HistoryChatMembership chat = new HistoryChatMembership();
+        resultSetToBaseChat(rs, chat);
+        chat.setDeleted(rs.getInt("deleted") == 1);
+        return chat;
+    }
+
+    private void resultSetToBaseChat(ResultSet rs, BaseChatMembership chat) throws SQLException {
         chat.setChatId(rs.getLong("chat_id"));
         chat.setUserId(rs.getLong("user_id"));
         chat.setUserName(rs.getString("user_name"));
@@ -217,9 +261,7 @@ class ChatStorage {
         chat.setChatType(rs.getString("chat_type"));
         chat.setBotNewStatus(rs.getString("bot_new_status"));
         chat.setBotOldStatus(rs.getString("bot_old_status"));
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         chat.setAddedDate(LocalDateTime.parse(rs.getString("created_at"), formatter));
-        chat.setUpdatedDate(LocalDateTime.parse(rs.getString("updated_at"), formatter));
-        return chat;
+
     }
 }

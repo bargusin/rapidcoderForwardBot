@@ -16,12 +16,12 @@ import static ru.rapidcoder.forward.bot.Bot.BACK_TO_MAIN_CALLBACK_DATA;
 public class MessageHandler {
     private static final Logger logger = LoggerFactory.getLogger(MessageHandler.class);
     private final NavigationManager navigationManager;
-    private final ChatManager chatManager;
+    private final ChannelManager channelManager;
     private final Bot bot;
 
     public MessageHandler(Bot bot, String storageFile) {
         navigationManager = new NavigationManager(storageFile);
-        chatManager = new ChatManager(storageFile);
+        channelManager = new ChannelManager(storageFile);
         this.bot = bot;
     }
 
@@ -67,11 +67,15 @@ public class MessageHandler {
             }
             case "menu_chats" -> {
                 navigationManager.setState(chatId, "CHATS");
-                bot.showChatsMenu(chatId, messageId, chatManager.getAll());
+                bot.showChatsMenu(chatId, messageId, channelManager.getAll());
+            }
+            case "menu_chats_history" -> {
+                navigationManager.setState(chatId, "CHATS");
+                bot.showChatsHistoryMenu(chatId, messageId, channelManager.getHistory());
             }
             case "menu_chats_upload" -> {
                 try {
-                    bot.execute(chatManager.uploadData(chatId));
+                    bot.execute(channelManager.uploadData(chatId));
                 } catch (TelegramApiException e) {
                     logger.error(e.getMessage(), e);
                 }
@@ -105,7 +109,7 @@ public class MessageHandler {
                 .orElse("not defined"), status);
         switch (status) {
             case "administrator", "restricted":
-                chatManager.save(chat.getId(), OptionalUtils.resolve(() -> chatMember.getFrom()
+                channelManager.save(chat.getId(), OptionalUtils.resolve(() -> chatMember.getFrom()
                                 .getId())
                         .orElse(-1L), OptionalUtils.resolve(() -> chatMember.getFrom()
                                 .getUserName())
@@ -116,7 +120,7 @@ public class MessageHandler {
             case "member":
                 break;
             case "left", "kicked":
-                chatManager.delete(chat.getId());
+                channelManager.delete(chat.getId());
                 break;
             default:
                 logger.warn("Unknown status {}", status);

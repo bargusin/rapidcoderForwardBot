@@ -1,10 +1,8 @@
-package ru.rapidcoder.forward.bot.component;
-
-import org.apache.commons.lang3.builder.ToStringBuilder;
+package ru.rapidcoder.forward.bot.dto;
 
 import java.time.LocalDateTime;
 
-public class MonitorChat {
+public class BaseChatMembership {
 
     private Long chatId;
     private Long userId;
@@ -14,7 +12,6 @@ public class MonitorChat {
     private String botNewStatus;
     private String botOldStatus;
     private LocalDateTime addedDate;
-    private LocalDateTime updatedDate;
 
     public Long getChatId() {
         return chatId;
@@ -80,16 +77,4 @@ public class MonitorChat {
         this.addedDate = addedDate;
     }
 
-    public LocalDateTime getUpdatedDate() {
-        return updatedDate;
-    }
-
-    public void setUpdatedDate(LocalDateTime updatedDate) {
-        this.updatedDate = updatedDate;
-    }
-
-    @Override
-    public String toString() {
-        return ToStringBuilder.reflectionToString(this);
-    }
 }
