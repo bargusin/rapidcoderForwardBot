@@ -1,20 +1,20 @@
-package ru.rapidcoder.forward.bot.component;
+package ru.rapidcoder.forward.bot.dto;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.time.LocalDateTime;
 
-public class ChatState {
+public class NavigationState {
 
     private long chatId;
     private String state;
     private String context;
     private LocalDateTime lastUpdated;
 
-    public ChatState() {
+    public NavigationState() {
     }
 
-    public ChatState(long chatId, String state, String context) {
+    public NavigationState(long chatId, String state, String context) {
         this.chatId = chatId;
         this.state = state;
         this.context = context;

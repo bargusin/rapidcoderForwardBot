@@ -8,18 +8,20 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.Bot;
 
+import java.util.Optional;
+import java.util.function.Supplier;
+
 import static ru.rapidcoder.forward.bot.Bot.BACK_TO_MAIN_CALLBACK_DATA;
 
 public class MessageHandler {
-
     private static final Logger logger = LoggerFactory.getLogger(MessageHandler.class);
     private final NavigationManager navigationManager;
-    private final ChatManager chatManager;
+    private final ChannelManager channelManager;
     private final Bot bot;
 
     public MessageHandler(Bot bot, String storageFile) {
         navigationManager = new NavigationManager(storageFile);
-        chatManager = new ChatManager(storageFile);
+        channelManager = new ChannelManager(storageFile);
         this.bot = bot;
     }
 
@@ -65,11 +67,15 @@ public class MessageHandler {
             }
             case "menu_chats" -> {
                 navigationManager.setState(chatId, "CHATS");
-                bot.showChatsMenu(chatId, messageId, chatManager.getAll());
+                bot.showChatsMenu(chatId, messageId, channelManager.getAll());
+            }
+            case "menu_chats_history" -> {
+                navigationManager.setState(chatId, "CHATS");
+                bot.showChatsHistoryMenu(chatId, messageId, channelManager.getHistory());
             }
             case "menu_chats_upload" -> {
                 try {
-                    bot.execute(chatManager.uploadData(chatId));
+                    bot.execute(channelManager.uploadData(chatId));
                 } catch (TelegramApiException e) {
                     logger.error(e.getMessage(), e);
                 }
@@ -97,17 +103,24 @@ public class MessageHandler {
         Chat chat = chatMember.getChat();
         String status = chatMember.getNewChatMember()
                 .getStatus();
-        Long chatId = chat.getId();
         String chatType = getChatType(chat);
-        logger.debug("Bot's status changed from chat '{}' to '{}'", chat.getTitle(), status);
+        logger.debug("Bot status changed chat '{}' from {} to '{}'", chat.getTitle(), OptionalUtils.resolve(() -> chatMember.getOldChatMember()
+                        .getStatus())
+                .orElse("not defined"), status);
         switch (status) {
             case "administrator", "restricted":
-                chatManager.save(chatId, chat.getTitle(), chatType, status);
+                channelManager.save(chat.getId(), OptionalUtils.resolve(() -> chatMember.getFrom()
+                                .getId())
+                        .orElse(-1L), OptionalUtils.resolve(() -> chatMember.getFrom()
+                                .getUserName())
+                        .orElse("not defined"), chat.getTitle(), chatType, status, OptionalUtils.resolve(() -> chatMember.getOldChatMember()
+                                .getStatus())
+                        .orElse("not defined"));
                 break;
             case "member":
                 break;
             case "left", "kicked":
-                chatManager.delete(chatId);
+                channelManager.delete(chat.getId());
                 break;
             default:
                 logger.warn("Unknown status {}", status);
@@ -126,5 +139,16 @@ public class MessageHandler {
             return "private";
         }
         return "unknown";
+    }
+
+    private static class OptionalUtils {
+        public static <T> Optional<T> resolve(Supplier<T> resolver) {
+            try {
+                T result = resolver.get();
+                return Optional.ofNullable(result);
+            } catch (NullPointerException e) {
+                return Optional.empty();
+            }
+        }
     }
 }

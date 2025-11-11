@@ -3,7 +3,7 @@ package ru.rapidcoder.forward.bot.handler;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.rapidcoder.forward.bot.component.ChatState;
+import ru.rapidcoder.forward.bot.dto.NavigationState;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -64,24 +64,24 @@ class NavigationStorage {
         }
     }
 
-    public void saveNavigationState(ChatState chatState) {
+    public void saveNavigationState(NavigationState navigationState) {
         String sql = """
                 INSERT OR REPLACE INTO navigation_history
                     (chat_id, state, context)
                     VALUES (?, ?, ?)
                 """;
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setLong(1, chatState.getChatId());
-            stmt.setString(2, chatState.getState());
-            stmt.setString(3, chatState.getContext());
+            stmt.setLong(1, navigationState.getChatId());
+            stmt.setString(2, navigationState.getState());
+            stmt.setString(3, navigationState.getContext());
             stmt.executeUpdate();
-            logger.debug("Saved navigation state for chat {}: ", chatState);
+            logger.debug("Saved navigation state for chat {}: ", navigationState);
         } catch (SQLException e) {
-            throw new IllegalArgumentException(String.format("Failed to save navigation state for chatId %d", chatState.getChatId()), e);
+            throw new IllegalArgumentException(String.format("Failed to save navigation state for chatId %d", navigationState.getChatId()), e);
         }
     }
 
-    public Optional<ChatState> getNavigationState(long chatId) {
+    public Optional<NavigationState> getNavigationState(long chatId) {
         String sql = """
                 SELECT chat_id, state, context, updated_at FROM navigation_history WHERE chat_id = ? LIMIT 1
                 """;
@@ -90,13 +90,13 @@ class NavigationStorage {
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                ChatState chatState = new ChatState();
-                chatState.setChatId(rs.getLong("chat_id"));
-                chatState.setState(rs.getString("state"));
-                chatState.setContext(rs.getString("context"));
+                NavigationState navigationState = new NavigationState();
+                navigationState.setChatId(rs.getLong("chat_id"));
+                navigationState.setState(rs.getString("state"));
+                navigationState.setContext(rs.getString("context"));
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                chatState.setLastUpdated(LocalDateTime.parse(rs.getString("updated_at"), formatter));
-                return Optional.of(chatState);
+                navigationState.setLastUpdated(LocalDateTime.parse(rs.getString("updated_at"), formatter));
+                return Optional.of(navigationState);
             }
         } catch (SQLException e) {
             logger.error("Failed to get navigation state for chat {}: {}", chatId, e.getMessage(), e);

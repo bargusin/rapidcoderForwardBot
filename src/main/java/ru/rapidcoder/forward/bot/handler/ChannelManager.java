@@ -2,35 +2,42 @@ package ru.rapidcoder.forward.bot.handler;
 
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
-import ru.rapidcoder.forward.bot.component.MonitorChat;
+import ru.rapidcoder.forward.bot.dto.ChatMembership;
+import ru.rapidcoder.forward.bot.dto.HistoryChatMembership;
 
 import java.io.File;
 import java.util.List;
 
-public class ChatManager {
+public class ChannelManager {
 
-    private final ChatStorage storage;
+    private final ChannelStorage storage;
     private final String storageFile;
 
-    public ChatManager(String storageFile) {
+    public ChannelManager(String storageFile) {
         this.storageFile = storageFile;
-        this.storage = ChatStorage.getInstance(storageFile);
+        this.storage = ChannelStorage.getInstance(storageFile);
     }
 
     /**
      * Сохранить информацию о канале/группе
      *
-     * @param chatId идентификатор чата
-     * @param title  название чата
-     * @param type   тип чата
-     * @param status статус бота в чате
+     * @param chatId    идентификатор чата
+     * @param userId    идетификатор пользователя
+     * @param userName  имя пользователя
+     * @param title     название чата
+     * @param type      тип чата
+     * @param newStatus новый статус бота в чате
+     * @param oldStatus текущий статус бота в чате
      */
-    public void save(Long chatId, String title, String type, String status) {
-        MonitorChat chat = new MonitorChat();
+    public void save(Long chatId, Long userId, String userName, String title, String type, String newStatus, String oldStatus) {
+        ChatMembership chat = new ChatMembership();
         chat.setChatId(chatId);
+        chat.setUserId(userId);
+        chat.setUserName(userName);
         chat.setChatTitle(title);
         chat.setChatType(type);
-        chat.setBotStatus(status);
+        chat.setBotNewStatus(newStatus);
+        chat.setBotOldStatus(oldStatus);
         storage.saveOrUpdateChat(chat);
     }
 
@@ -40,7 +47,7 @@ public class ChatManager {
      * @param chatId идентификатор чата
      * @return информация о канале/группе
      */
-    public MonitorChat get(Long chatId) {
+    public ChatMembership get(Long chatId) {
         return storage.findChatById(chatId);
     }
 
@@ -57,10 +64,11 @@ public class ChatManager {
      * Обновить статус бота в канале/группе
      *
      * @param chatId идентификатор чата
-     * @param status новый статус бота
+     * @param newStatus новый статус бота
+     * @param oldStatus текущий статус бота
      */
-    public void updateStatus(Long chatId, String status) {
-        storage.updateBotStatus(chatId, status);
+    public void updateStatus(Long chatId, String newStatus, String oldStatus) {
+        storage.updateBotStatus(chatId, newStatus, oldStatus);
     }
 
     /**
@@ -68,8 +76,17 @@ public class ChatManager {
      *
      * @return список каналов/групп подписки бота
      */
-    public List<MonitorChat> getAll() {
+    public List<ChatMembership> getAll() {
         return storage.getAllChats();
+    }
+
+    /**
+     * Получить историю подписок бота
+     *
+     * @return история подписок бота
+     */
+    public List<HistoryChatMembership> getHistory() {
+        return storage.getHistoryChats();
     }
 
     public SendDocument uploadData(Long chatId) {
