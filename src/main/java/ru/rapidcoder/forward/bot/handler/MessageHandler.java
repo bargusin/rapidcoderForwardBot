@@ -13,7 +13,6 @@ import ru.rapidcoder.forward.bot.Bot;
 import ru.rapidcoder.forward.bot.dto.ChatMembership;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -91,25 +90,21 @@ public class MessageHandler {
                 bot.showSendMenu(chatId, messageId, channelManager.getAll());
             }
             case "menu_send_message_clear" -> {
-                //bot.setMessageForSend(null);
+                bot.getMessagesForSend()
+                        .put(chatId, new ArrayList<>());
                 bot.showMainMenu(chatId, messageId);
             }
             case "menu_send_message" -> {
                 List<ChatMembership> chats = channelManager.getAll();
                 for (ChatMembership chat : chats) {
-                    logger.debug("Try send froward message into {}", chat.getChatId());
-                    List<Message> messages = bot.getMessagesForSend()
-                            .get(chatId);
-                    //                    for (Message message : messages) {
-                    //                        sendForwardMessage(chat.getChatId()
-                    //                                .toString(), message);
-                    //                    }
-                    processMediaGroup(chat.getChatId()
-                            .toString(), messages);
+                    logger.debug("Try send forward message into {}", chat.getChatId());
+                    sendForwardMessage(chat.getChatId()
+                            .toString(), bot.getMessagesForSend()
+                            .get(chatId));
                 }
                 bot.showNotification(callbackId, "✅ Сообщение отправлено адресатам");
-
-                //bot.setMessageForSend(null);
+                bot.getMessagesForSend()
+                        .put(chatId, new ArrayList<>());
                 bot.showMainMenu(chatId, messageId);
             }
             case "settings_reset" -> {
@@ -179,84 +174,59 @@ public class MessageHandler {
         return "unknown";
     }
 
-    private void sendForwardMessage(String chatId, Message message) {
-        try {
-            //            if (message.getForwardFromChat() != null) {
-            //                ForwardMessage forward = new ForwardMessage();
-            //                forward.setChatId(chatId);
-            //                forward.setFromChatId(message.getForwardFromChat().getId().toString());
-            //                forward.setMessageId(message.getForwardFromMessageId());
-            //                bot.execute(forward);
-            //            } else {
-            CopyMessage copy = new CopyMessage();
-            copy.setChatId(chatId);
-            copy.setFromChatId(message.getChatId()
-                    .toString());
-            copy.setMessageId(message.getMessageId());
-            bot.execute(copy);
-            //            }
-        } catch (TelegramApiException e) {
-            logger.error(e.getMessage(), e);
-        }
-    }
-
-    private void processMediaGroup(String chatId, List<Message> groupMessages) {
-        groupMessages.sort(Comparator.comparing(Message::getMessageId));
-
-        // Создаем медиа-группу
+    private void sendForwardMessage(String chatId, List<Message> groupMessages) {
         List<InputMedia> mediaList = new ArrayList<>();
         String caption = null;
-
-        List<Message> textMessages = new ArrayList<>();
-
         for (Message message : groupMessages) {
-            if (message.hasText()) {
-                textMessages.add(message);
-            } else {
-                if (message.hasPhoto()) {
-                    InputMediaPhoto photo = new InputMediaPhoto();
-                    List<PhotoSize> photos = message.getPhoto();
-                    photo.setMedia(photos.get(photos.size() - 1)
-                            .getFileId());
-                    photo.setParseMode("HTML");
-                    if (message.getCaption() != null && caption == null) {
-                        caption = message.getCaption();
-                        photo.setCaption(caption);
-                    }
-                    mediaList.add(photo);
-                } else if (message.hasVideo()) {
-                    InputMediaVideo video = new InputMediaVideo();
-                    video.setMedia(message.getVideo()
-                            .getFileId());
-                    video.setParseMode("HTML");
-                    if (message.getCaption() != null && caption == null) {
-                        caption = message.getCaption();
-                        video.setCaption(caption);
-                    }
-                    mediaList.add(video);
+            if (message.hasPhoto()) {
+                InputMediaPhoto photo = new InputMediaPhoto();
+                List<PhotoSize> photos = message.getPhoto();
+                photo.setMedia(photos.get(photos.size() - 1)
+                        .getFileId());
+                if (message.getCaption() != null && caption == null) {
+                    caption = message.getCaption();
+                    photo.setCaption(caption);
                 }
+                photo.setCaptionEntities(message.getCaptionEntities());
+                mediaList.add(photo);
+            } else if (message.hasVideo()) {
+                InputMediaVideo video = new InputMediaVideo();
+                video.setMedia(message.getVideo()
+                        .getFileId());
+                if (message.getCaption() != null && caption == null) {
+                    caption = message.getCaption();
+                    video.setCaption(caption);
+                }
+                video.setCaptionEntities(message.getCaptionEntities());
+                mediaList.add(video);
             }
         }
 
-        for (Message textMessage : textMessages) {
-            CopyMessage copyMessage = new CopyMessage();
-            copyMessage.setChatId(chatId);
-            copyMessage.setFromChatId(textMessage.getChatId()
-                    .toString());
-            copyMessage.setMessageId(textMessage.getMessageId());
-            try {
-                bot.execute(copyMessage);
-            } catch (TelegramApiException e) {
-                logger.error(e.getMessage(), e);
-            }
-        }
-        if (!mediaList.isEmpty()) {
+        if (!mediaList.isEmpty() && mediaList.size() > 1) {
             SendMediaGroup mediaGroup = new SendMediaGroup(chatId, mediaList);
             try {
                 bot.execute(mediaGroup);
             } catch (TelegramApiException e) {
                 logger.error(e.getMessage(), e);
             }
+        }
+
+        if (!groupMessages.isEmpty() && mediaList.size() < 2) {
+            sendCopyMessage(chatId, groupMessages.get(0));
+        }
+    }
+
+    public void sendCopyMessage(String chatId, Message message) {
+        CopyMessage copy = new CopyMessage();
+        copy.setChatId(chatId);
+        copy.setFromChatId(message.getChatId()
+                .toString());
+        copy.setMessageId(message.getMessageId());
+        copy.setCaptionEntities(message.getCaptionEntities());
+        try {
+            bot.execute(copy);
+        } catch (TelegramApiException e) {
+            logger.error(e.getMessage(), e);
         }
     }
 
