@@ -10,7 +10,6 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageTe
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.component.KeyboardButton;
@@ -53,6 +52,9 @@ public class Bot extends TelegramLongPollingBot {
                         .getId();
                 long chatId = message.getChatId();
                 logger.debug("Обработка сообщения chatId={}, userId={}", chatId, userId);
+                /*
+                    Если в сообщении пересылается только ссылка, то такое сообщение определяется не как пересылаемое, а как текстовое
+                 */
                 if (message.getForwardDate() != null) {
                     handleForwardMessage(update);
                 } else if (message.hasText()) {
@@ -64,25 +66,6 @@ public class Bot extends TelegramLongPollingBot {
                 handleChatMember(update);
             }
         } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-        }
-    }
-
-    public void removeKeyboard(Long chatId) {
-        try {
-            SendMessage message = new SendMessage();
-            message.setChatId(chatId.toString());
-            message.setText("⌨️ Клавиатура удалена");
-
-            // Создаем объект для удаления клавиатуры
-            ReplyKeyboardRemove keyboardRemove = new ReplyKeyboardRemove();
-            keyboardRemove.setRemoveKeyboard(true);
-            keyboardRemove.setSelective(false); // Удалить для всех пользователей
-
-            message.setReplyMarkup(keyboardRemove);
-
-            execute(message);
-        } catch (TelegramApiException e) {
             logger.error(e.getMessage(), e);
         }
     }

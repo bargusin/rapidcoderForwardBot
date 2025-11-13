@@ -14,19 +14,21 @@ import ru.rapidcoder.forward.bot.dto.ChatMembership;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.*;
 import java.util.function.Supplier;
 
 import static ru.rapidcoder.forward.bot.Bot.BACK_TO_MAIN_CALLBACK_DATA;
 
 public class MessageHandler {
     private static final Logger logger = LoggerFactory.getLogger(MessageHandler.class);
-    private final NavigationManager navigationManager;
     private final ChannelManager channelManager;
     private final Bot bot;
+    private final Map<Long, ScheduledFuture<?>> userTimers = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public MessageHandler(Bot bot, String storageFile) {
-        navigationManager = new NavigationManager(storageFile);
         channelManager = new ChannelManager(storageFile);
         this.bot = bot;
     }
@@ -60,23 +62,18 @@ public class MessageHandler {
 
         switch (callbackData) {
             case "menu_help" -> {
-                navigationManager.setState(chatId, "HELP");
                 bot.showHelpMenu(chatId, messageId);
             }
             case BACK_TO_MAIN_CALLBACK_DATA -> {
-                navigationManager.setState(chatId, "MAIN");
                 bot.showMainMenu(chatId, messageId);
             }
             case "menu_settings" -> {
-                navigationManager.setState(chatId, "SETTINGS");
                 bot.showSettingsMenu(chatId, messageId);
             }
             case "menu_chats" -> {
-                navigationManager.setState(chatId, "CHATS");
                 bot.showChatsMenu(chatId, messageId, channelManager.getAll());
             }
             case "menu_chats_history" -> {
-                navigationManager.setState(chatId, "CHATS");
                 bot.showChatsHistoryMenu(chatId, messageId, channelManager.getHistory());
             }
             case "menu_chats_upload" -> {
@@ -128,7 +125,18 @@ public class MessageHandler {
         bot.getMessagesForSend()
                 .computeIfAbsent(chatId, k -> new ArrayList<>())
                 .add(message);
-        //bot.showSendMenu(chatId, null, channelManager.getAll());
+
+        ScheduledFuture<?> oldTimer = userTimers.get(chatId);
+        if (oldTimer != null) {
+            oldTimer.cancel(false);
+        }
+
+        ScheduledFuture<?> newTimer = scheduler.schedule(() -> {
+            bot.showSendMenu(chatId, null, channelManager.getAll());
+            userTimers.remove(chatId);
+        }, 2, TimeUnit.SECONDS);
+
+        userTimers.put(chatId, newTimer);
     }
 
     public void handleChatMember(Update update) {
