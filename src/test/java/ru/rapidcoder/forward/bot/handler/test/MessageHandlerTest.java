@@ -2,6 +2,7 @@ package ru.rapidcoder.forward.bot.handler.test;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -35,7 +36,25 @@ public class MessageHandlerTest {
 
         message.setChat(chat);
         message.setText(text);
+
         update.setMessage(message);
+
+        return update;
+    }
+
+    private Update createUpdateWithCallbackQuery(Long chatId, String callbackData) {
+        Update update = new Update();
+        Message message = new Message();
+        CallbackQuery callbackQuery = new CallbackQuery();
+        Chat chat = new Chat();
+        chat.setId(chatId);
+
+        message.setChat(chat);
+
+        callbackQuery.setData(callbackData);
+        callbackQuery.setMessage(message);
+
+        update.setCallbackQuery(callbackQuery);
 
         return update;
     }
@@ -62,10 +81,30 @@ public class MessageHandlerTest {
     }
 
     @Test
-    void testSettingsMenu() {
+    void testShowSettingsMenu() {
         Update update = createUpdateWithText(1L, "/settings");
         messageHandler.handleCommand(update);
-        verify(botSpy, never()).showMainMenu(1L, null);
-        //TODO
+        verify(botSpy).showSettingsMenu(1L, null);
+    }
+
+    @Test
+    void testCatchTextForwardMessage() {
+        Update update = createUpdateWithText(1L, "TEST");
+        messageHandler.handleCommand(update);
+        verify(botSpy).showSendMenu(any(), any(), any());
+    }
+
+    @Test
+    void testHandleCallbackMenuHelp() {
+        Update update = createUpdateWithCallbackQuery(1L, "menu_help");
+        messageHandler.handleCallback(update);
+        verify(botSpy).showHelpMenu(1L, null);
+    }
+
+    @Test
+    void testHandleCallbackMenuChatHistory() {
+        Update update = createUpdateWithCallbackQuery(1L, "menu_chats_history");
+        messageHandler.handleCallback(update);
+        verify(botSpy).showChatsHistoryMenu(any(), any(), any());
     }
 }

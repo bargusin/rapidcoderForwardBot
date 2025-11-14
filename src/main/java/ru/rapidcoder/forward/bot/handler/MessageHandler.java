@@ -42,6 +42,13 @@ public class MessageHandler {
             bot.showHelpMenu(chatId, null);
         } else if ("/settings".equals(messageText)) {
             bot.showSettingsMenu(chatId, null);
+        } else { // Переслали в бот текстовое сообщение
+            Message message = update.getMessage();
+            logger.debug("Catch text message for send with id={}", message.getMessageId());
+            bot.getMessagesForSend()
+                    .computeIfAbsent(chatId, k -> new ArrayList<>())
+                    .add(message);
+            bot.showSendMenu(chatId, null, channelManager.getAll());
         }
     }
 
@@ -50,10 +57,10 @@ public class MessageHandler {
                 .getData();
         String callbackId = update.getCallbackQuery()
                 .getId();
-        long chatId = update.getCallbackQuery()
+        Long chatId = update.getCallbackQuery()
                 .getMessage()
                 .getChatId();
-        int messageId = update.getCallbackQuery()
+        Integer messageId = update.getCallbackQuery()
                 .getMessage()
                 .getMessageId();
 
