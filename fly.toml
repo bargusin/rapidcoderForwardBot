@@ -1,0 +1,21 @@
+app = 'rapidcoderforwardbot'
+  primary_region = 'ams'
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  BOT_USERNAME = 'bot'
+
+[[mounts]]
+  source = "data"
+  destination = "/data"
+
+[services.concurrency]
+  hard_limit = 25
+  soft_limit = 20
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
