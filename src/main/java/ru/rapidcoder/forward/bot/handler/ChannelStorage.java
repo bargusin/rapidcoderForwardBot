@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import ru.rapidcoder.forward.bot.dto.BaseChatMembership;
 import ru.rapidcoder.forward.bot.dto.ChatMembership;
 import ru.rapidcoder.forward.bot.dto.HistoryChatMembership;
+import ru.rapidcoder.forward.bot.dto.HistorySending;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -93,11 +94,22 @@ class ChannelStorage {
                     (NEW.chat_id, NEW.user_id, NEW.user_name, NEW.chat_title, NEW.chat_type, NEW.bot_new_status, NEW.bot_old_status, NEW.deleted);
                 END;
                 """;
+        String sqlHistorySendingToChats = """
+                CREATE TABLE IF NOT EXISTS history_sending_to_chat (
+                    chat_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    user_name TEXT NOT NULL,
+                    chat_title TEXT NOT NULL,
+                    message_id TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+                """;
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(sqlMonitoredChats);
             stmt.execute(sqlHistoryMonitoredChats);
             stmt.execute(sqlMonitoredChatsUpdate);
             stmt.execute(sqlTriggerMonitoredChatsInsert);
+            stmt.execute(sqlHistorySendingToChats);
             logger.info("Chat's storage database initialized successfully");
         } catch (SQLException e) {
             logger.error("Failed to initialize chat's storage database: {}", e.getMessage(), e);
@@ -123,6 +135,50 @@ class ChannelStorage {
         } catch (SQLException e) {
             throw new IllegalArgumentException(String.format("Failed to save chat by chatId %d", chat.getChatId()), e);
         }
+    }
+
+    public void saveHistorySendingToChat(HistorySending send) {
+        String sql = """
+                INSERT INTO history_sending_to_chat
+                    (chat_id, user_id, user_name, chat_title, message_id)
+                    VALUES (?, ?, ?, ?, ?)
+                """;
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, send.getChatId());
+            stmt.setLong(2, send.getUserId());
+            stmt.setString(3, send.getUserName());
+            stmt.setString(4, send.getChatTitle());
+            stmt.setInt(5, send.getMessageId());
+            stmt.executeUpdate();
+            logger.debug("Sending history to chat '{}' saved into database", send.getChatTitle());
+        } catch (SQLException e) {
+            throw new IllegalArgumentException(String.format("Failed to save sending history to chat by chatId %d", send.getMessageId()), e);
+        }
+    }
+
+    public List<HistorySending> getHistorySendingToChat() {
+        List<HistorySending> history = new ArrayList<>();
+        String sql = """
+                    SELECT
+                        chat_id,
+                        user_id,
+                        user_name,
+                        chat_title,
+                        message_id,
+                        created_at
+                    FROM history_sending_to_chat
+                    ORDER BY created_at DESC LIMIT 20
+                """;
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                HistorySending send = resultSetToHistorySendingChat(rs);
+                history.add(send);
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to get chats {}", e.getMessage(), e);
+        }
+        return history;
     }
 
     public void deleteChat(Long chatId) {
@@ -263,5 +319,16 @@ class ChannelStorage {
         chat.setBotOldStatus(rs.getString("bot_old_status"));
         chat.setAddedDate(LocalDateTime.parse(rs.getString("created_at"), formatter));
 
+    }
+
+    private HistorySending resultSetToHistorySendingChat(ResultSet rs) throws SQLException {
+        HistorySending send = new HistorySending();
+        send.setChatId(rs.getLong("chat_id"));
+        send.setUserId(rs.getLong("user_id"));
+        send.setUserName(rs.getString("user_name"));
+        send.setChatTitle(rs.getString("chat_title"));
+        send.setMessageId(rs.getInt("message_id"));
+        send.setAddedDate(LocalDateTime.parse(rs.getString("created_at"), formatter));
+        return send;
     }
 }
