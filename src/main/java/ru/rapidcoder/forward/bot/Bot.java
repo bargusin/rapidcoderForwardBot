@@ -53,9 +53,7 @@ public class Bot extends TelegramLongPollingBot {
                         .getId();
                 long chatId = message.getChatId();
                 logger.debug("Обработка сообщения chatId={}, userId={}", chatId, userId);
-                /*
-                    Если в сообщении пересылается только ссылка, то такое сообщение определяется не как пересылаемое, а как текстовое
-                 */
+                //Если в сообщении пересылается только ссылка, то такое сообщение определяется не как пересылаемое, а как текстовое
                 if (message.getForwardDate() != null) {
                     handleForwardMessage(update);
                 } else if (message.hasText()) {
@@ -97,7 +95,8 @@ public class Bot extends TelegramLongPollingBot {
             rows.add(List.of(new KeyboardButton("✉\uFE0F Рассылка текущего сообщения", "menu_send")));
         }
         rows.add(List.of(new KeyboardButton("\uD83D\uDCE2 Подписка на каналы", "menu_chats")));
-        rows.add(List.of(new KeyboardButton("\uD83D\uDCCB История рассылок", "menu_sending_history"), new KeyboardButton("⚙\uFE0F Настройки", "menu_settings"), new KeyboardButton("\uD83D\uDCAC Помощь", "menu_help")));
+        //rows.add(List.of(new KeyboardButton("⚙\uFE0F Настройки", "menu_settings")));
+        rows.add(List.of(new KeyboardButton("\uD83D\uDCCB История рассылок", "menu_sending_history"), new KeyboardButton("\uD83D\uDCAC Помощь", "menu_help")));
         keyboard.setKeyboard(rows);
 
         if (messageId != null) {
@@ -213,10 +212,10 @@ public class Bot extends TelegramLongPollingBot {
     public void showHelpMenu(Long chatId, Integer messageId) {
         String text = """
                 \uD83D\uDCAC *Помощь по боту*
-                                
+                
                 *Основные команды:*
                 `/start` - Главное меню
-                                
+                
                 Описание работы бота""";
 
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(List.of(List.of(new KeyboardButton("\uD83C\uDFE0 Главное меню", BACK_TO_MAIN_CALLBACK_DATA))));
