@@ -3,7 +3,10 @@ package ru.rapidcoder.forward.bot.handler.test;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import ru.rapidcoder.forward.bot.dto.ChatMembership;
+import ru.rapidcoder.forward.bot.dto.HistoryChatMembership;
+import ru.rapidcoder.forward.bot.dto.HistorySending;
 import ru.rapidcoder.forward.bot.handler.ChannelManager;
 
 import java.io.File;
@@ -84,6 +87,33 @@ public class ChannelManagerTest {
     }
 
     @Test
+    void testSaveHistorySending() {
+        assertThrows(NullPointerException.class, () -> {
+            channelManager.saveHistorySending(null, null, null, null, null);
+        });
+
+        assertThrows(NullPointerException.class, () -> {
+            channelManager.saveHistorySending(1L, null, null, null, null);
+        });
+
+        assertThrows(NullPointerException.class, () -> {
+            channelManager.saveHistorySending(1L, 2L, null, null, null);
+        });
+
+        assertThrows(NullPointerException.class, () -> {
+            channelManager.saveHistorySending(1L, 2L, "userName", null, null);
+        });
+
+        assertThrows(NullPointerException.class, () -> {
+            channelManager.saveHistorySending(1L, 2L, "userName", "TestChannel", null);
+        });
+
+        channelManager.saveHistorySending(1L, 2L, "userName", "TestChannel", 3);
+        assertThat(channelManager.getHistorySending().size()).isNotZero();
+
+    }
+
+    @Test
     void testGetAllChat() {
         channelManager.save(1L, 2L, "userName", "TestChannel", "channel", "left", "administrator");
 
@@ -135,5 +165,28 @@ public class ChannelManagerTest {
         assertThat(modifiedChat.getAddedDate()).isEqualTo(chat.getAddedDate());
         assertThat(modifiedChat.getUpdatedDate()).isNotNull();
         assertThat(modifiedChat.toString()).isNotNull();
+    }
+
+    @Test
+    void testUploadData() {
+        channelManager.save(1L, 2L, "userName", "TestChannel", "channel", "administrator", null);
+
+        ChatMembership chat = channelManager.get(1L);
+        assertThat(chat).isNotNull();
+
+        SendDocument document = channelManager.uploadData(1L);
+        assertThat(document.getChatId()).isEqualTo(chat.getChatId().toString());
+        assertThat(document.getDocument()).isNotNull();
+    }
+
+    @Test
+    void testGetHistory() {
+        channelManager.save(1L, 2L, "userName", "TestChannel", "channel", "administrator", null);
+
+        ChatMembership chat = channelManager.get(1L);
+        assertThat(chat).isNotNull();
+
+        List<HistoryChatMembership> history = channelManager.getHistory();
+        assertThat(history.size()).isNotZero();
     }
 }

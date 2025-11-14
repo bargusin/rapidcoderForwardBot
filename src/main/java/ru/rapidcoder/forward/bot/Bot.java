@@ -15,12 +15,11 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.component.KeyboardButton;
 import ru.rapidcoder.forward.bot.dto.ChatMembership;
 import ru.rapidcoder.forward.bot.dto.HistoryChatMembership;
+import ru.rapidcoder.forward.bot.dto.HistorySending;
 import ru.rapidcoder.forward.bot.handler.MessageHandler;
 
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Bot extends TelegramLongPollingBot {
@@ -30,6 +29,8 @@ public class Bot extends TelegramLongPollingBot {
     private final String botName;
     private final MessageHandler messageHandler;
     private final Map<Long, List<Message>> messagesForSend = new ConcurrentHashMap<>();
+    private final Map<Long, Set<Integer>> selectedChats = new ConcurrentHashMap<>();
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public Bot(String botName, String tokenId, String storageFile) {
         super(tokenId);
@@ -87,7 +88,7 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     public void showMainMenu(Long chatId, Integer messageId) {
-        String text = "*\uD83C\uDFE0 Главное меню*";
+        String text = "\uD83C\uDFE0 *Главное меню*";
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
@@ -95,7 +96,8 @@ public class Bot extends TelegramLongPollingBot {
                 .isEmpty()) {
             rows.add(List.of(new KeyboardButton("✉\uFE0F Рассылка текущего сообщения", "menu_send")));
         }
-        rows.add(List.of(new KeyboardButton("\uD83D\uDCE2 Подписка на каналы", "menu_chats"), new KeyboardButton("⚙\uFE0F Настройки", "menu_settings"), new KeyboardButton("\uD83D\uDCAC Помощь", "menu_help")));
+        rows.add(List.of(new KeyboardButton("\uD83D\uDCE2 Подписка на каналы", "menu_chats")));
+        rows.add(List.of(new KeyboardButton("\uD83D\uDCCB История рассылок", "menu_sending_history"), new KeyboardButton("⚙\uFE0F Настройки", "menu_settings"), new KeyboardButton("\uD83D\uDCAC Помощь", "menu_help")));
         keyboard.setKeyboard(rows);
 
         if (messageId != null) {
@@ -113,7 +115,7 @@ public class Bot extends TelegramLongPollingBot {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
         for (ChatMembership chat : chats) {
-            sb.append(String.format("Канал '%s', тип: '%s', роль: '%s'%n", chat.getChatTitle(), chat.getChatType(), chat.getBotNewStatus()));
+            sb.append(String.format("✔\uFE0F *%s* (тип: %s, роль: %s)%n", chat.getChatTitle(), chat.getChatType(), chat.getBotNewStatus()));
         }
 
         rows.add(List.of(new KeyboardButton("\uD83D\uDCCB История подписок", "menu_chats_history")));
@@ -135,8 +137,19 @@ public class Bot extends TelegramLongPollingBot {
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
-        for (ChatMembership chat : chats) {
-            sb.append(String.format("Канал '%s', тип: '%s', роль: '%s'%n", chat.getChatTitle(), chat.getChatType(), chat.getBotNewStatus()));
+        Set<Integer> userSelection = selectedChats.getOrDefault(chatId, new HashSet<>());
+        for (int i = 0; i < chats.size(); i++) {
+            ChatMembership chat = chats.get(i);
+            String chatName = chat.getChatTitle();
+            boolean isDisabled = userSelection.contains(i);
+
+            String callbackData = "chat_toggle_" + i;
+
+            InlineKeyboardButton chatButton = new InlineKeyboardButton();
+            chatButton.setText((!isDisabled ? "✅ " : "❌ ") + chatName);
+            chatButton.setCallbackData(callbackData);
+
+            rows.add(List.of(chatButton));
         }
 
         rows.add(List.of(new KeyboardButton("✉\uFE0F Отправить", "menu_send_message"), new KeyboardButton("\uD83D\uDDD1\uFE0F Очистить", "menu_send_message_clear")));
@@ -157,7 +170,6 @@ public class Bot extends TelegramLongPollingBot {
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         for (HistoryChatMembership chat : chats) {
             sb.append(String.format("%s deleted=%b, chatId=%d, userId=%d, userName=%s, channel='%s', currentStatus='%s', oldStatus='%s'%n", formatter.format(chat.getAddedDate()), chat.isDeleted(), chat.getChatId(), chat.getUserId(), chat.getUserName(), chat.getChatTitle(), chat.getBotNewStatus(), chat.getBotOldStatus()));
         }
@@ -170,6 +182,32 @@ public class Bot extends TelegramLongPollingBot {
         } else {
             sendMessage(chatId, sb.toString(), keyboard);
         }
+    }
+
+    public void showSendingHistoryMenu(Long chatId, Integer messageId, List<HistorySending> history) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\uD83D\uDCCB *История отправки собщений*\n\n");
+
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        for (HistorySending send : history) {
+            sb.append(String.format("%s %s (userName=%s, channel=%s)%n", formatter.format(send.getAddedDate()), getLinkMessage(send.getChatId(), send.getMessageId()), send.getUserName(), send.getChatTitle()));
+        }
+
+        rows.add(List.of(new KeyboardButton("\uD83C\uDFE0 Главное меню", BACK_TO_MAIN_CALLBACK_DATA)));
+        keyboard.setKeyboard(rows);
+
+        if (messageId != null) {
+            updateMessage(chatId, messageId, sb.toString(), keyboard);
+        } else {
+            sendMessage(chatId, sb.toString(), keyboard);
+        }
+    }
+
+    public String getLinkMessage(Long chatId, Integer messageId) {
+        return String.format("https://t.me/c/%s/%d", chatId.toString()
+                .substring(4), messageId);
     }
 
     public void showHelpMenu(Long chatId, Integer messageId) {
@@ -257,5 +295,9 @@ public class Bot extends TelegramLongPollingBot {
 
     public Map<Long, List<Message>> getMessagesForSend() {
         return messagesForSend;
+    }
+
+    public Map<Long, Set<Integer>> getSelectedChats() {
+        return selectedChats;
     }
 }

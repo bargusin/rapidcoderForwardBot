@@ -12,10 +12,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.Bot;
 import ru.rapidcoder.forward.bot.dto.ChatMembership;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
 
@@ -60,6 +57,22 @@ public class MessageHandler {
                 .getMessage()
                 .getMessageId();
 
+        if (callbackData.startsWith("chat_toggle_")) {
+            int chatIndex = Integer.parseInt(callbackData.substring("chat_toggle_".length()));
+            Set<Integer> userSelection = bot.getSelectedChats()
+                    .getOrDefault(chatId, new HashSet<>());
+            if (userSelection.contains(chatIndex)) {
+                userSelection.remove(chatIndex);
+            } else {
+                userSelection.add(chatIndex);
+            }
+            bot.getSelectedChats()
+                    .put(chatId, userSelection);
+            bot.showSendMenu(chatId, update.getCallbackQuery()
+                    .getMessage()
+                    .getMessageId(), channelManager.getAll());
+        }
+
         switch (callbackData) {
             case "menu_help" -> {
                 bot.showHelpMenu(chatId, messageId);
@@ -93,16 +106,24 @@ public class MessageHandler {
             }
             case "menu_send_message" -> {
                 List<ChatMembership> chats = channelManager.getAll();
-                for (ChatMembership chat : chats) {
-                    logger.debug("Try send forward message into {}", chat.getChatId());
-                    sendForwardMessage(chat.getChatId()
-                            .toString(), bot.getMessagesForSend()
-                            .get(chatId));
+                Set<Integer> userSelection = bot.getSelectedChats()
+                        .getOrDefault(chatId, new HashSet<>());
+                for (int i = 0; i < chats.size(); i++) {
+                    ChatMembership chat = chats.get(i);
+                    logger.debug("Send forward message into {} ready", chat.getChatTitle());
+                    if (!userSelection.contains(i)) {
+                        logger.debug("Try send forward message into {}", chat.getChatTitle());
+                        sendForwardMessage(chat, bot.getMessagesForSend()
+                                .get(chatId));
+                    }
                 }
                 bot.showNotification(callbackId, "✅ Сообщение отправлено адресатам");
                 bot.getMessagesForSend()
                         .put(chatId, new ArrayList<>());
                 bot.showMainMenu(chatId, messageId);
+            }
+            case "menu_sending_history" -> {
+                bot.showSendingHistoryMenu(chatId, messageId, channelManager.getHistorySending());
             }
             case "settings_reset" -> {
                 bot.showNotification(callbackId, "✅ Настройки сброшены к значениям по умолчанию");
@@ -182,7 +203,7 @@ public class MessageHandler {
         return "unknown";
     }
 
-    private void sendForwardMessage(String chatId, List<Message> groupMessages) {
+    private void sendForwardMessage(ChatMembership chat, List<Message> groupMessages) {
         List<InputMedia> mediaList = new ArrayList<>();
         String caption = null;
         for (Message message : groupMessages) {
@@ -211,28 +232,42 @@ public class MessageHandler {
         }
 
         if (!mediaList.isEmpty() && mediaList.size() > 1) {
-            SendMediaGroup mediaGroup = new SendMediaGroup(chatId, mediaList);
+            SendMediaGroup mediaGroup = new SendMediaGroup(chat.getChatId()
+                    .toString(), mediaList);
             try {
-                bot.execute(mediaGroup);
+                List<Message> sending = bot.execute(mediaGroup);
+                try {
+                    for (Message message : sending) {
+                        channelManager.saveHistorySending(chat.getChatId(), chat.getUserId(), chat.getUserName(), chat.getChatTitle(), message.getMessageId());
+                    }
+                } catch (Exception e) {
+                    logger.error(e.getMessage(), e);
+                }
             } catch (TelegramApiException e) {
                 logger.error(e.getMessage(), e);
             }
         }
 
         if (!groupMessages.isEmpty() && mediaList.size() < 2) {
-            sendCopyMessage(chatId, groupMessages.get(0));
+            sendCopyMessage(chat, groupMessages.get(0));
         }
     }
 
-    public void sendCopyMessage(String chatId, Message message) {
+    public void sendCopyMessage(ChatMembership chat, Message message) {
         CopyMessage copy = new CopyMessage();
-        copy.setChatId(chatId);
+        copy.setChatId(chat.getChatId());
         copy.setFromChatId(message.getChatId()
                 .toString());
         copy.setMessageId(message.getMessageId());
         copy.setCaptionEntities(message.getCaptionEntities());
         try {
-            bot.execute(copy);
+            MessageId sending = bot.execute(copy);
+            try {
+                channelManager.saveHistorySending(chat.getChatId(), chat.getUserId(), chat.getUserName(), chat.getChatTitle(), sending.getMessageId()
+                        .intValue());
+            } catch (Exception e) {
+                logger.error(e.getMessage(), e);
+            }
         } catch (TelegramApiException e) {
             logger.error(e.getMessage(), e);
         }

@@ -4,6 +4,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import ru.rapidcoder.forward.bot.dto.ChatMembership;
 import ru.rapidcoder.forward.bot.dto.HistoryChatMembership;
+import ru.rapidcoder.forward.bot.dto.HistorySending;
 
 import java.io.File;
 import java.util.List;
@@ -42,6 +43,25 @@ public class ChannelManager {
     }
 
     /**
+     * Сохранить отправленное сообещние в историю отправки
+     *
+     * @param chatId    идентификатор чата
+     * @param userId    идетификатор пользователя
+     * @param userName  имя пользователя
+     * @param title     название чата
+     * @param messageId идентификатор сообщения
+     */
+    public void saveHistorySending(Long chatId, Long userId, String userName, String title, Integer messageId) {
+        HistorySending send = new HistorySending();
+        send.setChatId(chatId);
+        send.setUserId(userId);
+        send.setUserName(userName);
+        send.setChatTitle(title);
+        send.setMessageId(messageId);
+        storage.saveHistorySendingToChat(send);
+    }
+
+    /**
      * Получить информацию о канале/группе
      *
      * @param chatId идентификатор чата
@@ -63,7 +83,7 @@ public class ChannelManager {
     /**
      * Обновить статус бота в канале/группе
      *
-     * @param chatId идентификатор чата
+     * @param chatId    идентификатор чата
      * @param newStatus новый статус бота
      * @param oldStatus текущий статус бота
      */
@@ -89,6 +109,21 @@ public class ChannelManager {
         return storage.getHistoryChats();
     }
 
+    /**
+     * Получить историю отправки сообщений в каналы/группы
+     *
+     * @return история отправки сообщений
+     */
+    public List<HistorySending> getHistorySending() {
+        return storage.getHistorySendingToChat();
+    }
+
+    /**
+     * Выгрузить данные из базы
+     *
+     * @param chatId идентификатор чата
+     * @return файл с данными из базы
+     */
     public SendDocument uploadData(Long chatId) {
         File file = new File(storageFile);
         SendDocument document = new SendDocument();
