@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import ru.rapidcoder.forward.bot.dto.ChatMembership;
 import ru.rapidcoder.forward.bot.dto.HistoryChatMembership;
-import ru.rapidcoder.forward.bot.dto.HistorySending;
 import ru.rapidcoder.forward.bot.handler.ChannelManager;
 
 import java.io.File;
@@ -109,7 +108,8 @@ public class ChannelManagerTest {
         });
 
         channelManager.saveHistorySending(1L, 2L, "userName", "TestChannel", 3);
-        assertThat(channelManager.getHistorySending().size()).isNotZero();
+        assertThat(channelManager.getHistorySending()
+                .size()).isNotZero();
 
     }
 
@@ -175,7 +175,8 @@ public class ChannelManagerTest {
         assertThat(chat).isNotNull();
 
         SendDocument document = channelManager.uploadData(1L);
-        assertThat(document.getChatId()).isEqualTo(chat.getChatId().toString());
+        assertThat(document.getChatId()).isEqualTo(chat.getChatId()
+                .toString());
         assertThat(document.getDocument()).isNotNull();
     }
 
