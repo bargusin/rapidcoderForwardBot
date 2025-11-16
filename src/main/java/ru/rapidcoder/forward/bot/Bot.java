@@ -13,9 +13,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.component.KeyboardButton;
-import ru.rapidcoder.forward.bot.dto.ChatMembership;
-import ru.rapidcoder.forward.bot.dto.HistoryChatMembership;
-import ru.rapidcoder.forward.bot.dto.HistorySending;
+import ru.rapidcoder.forward.bot.dto.*;
 import ru.rapidcoder.forward.bot.handler.MessageHandler;
 
 import java.time.format.DateTimeFormatter;
@@ -32,11 +30,11 @@ public class Bot extends TelegramLongPollingBot {
     private final Map<Long, Set<Integer>> selectedChats = new ConcurrentHashMap<>();
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    public Bot(String botName, String tokenId, String storageFile) {
+    public Bot(String botName, String tokenId, String storageFile, List<Long> admins) {
         super(tokenId);
         this.botName = botName;
 
-        messageHandler = new MessageHandler(this, storageFile);
+        messageHandler = new MessageHandler(this, storageFile, admins);
     }
 
     @Override
@@ -94,7 +92,17 @@ public class Bot extends TelegramLongPollingBot {
                 .isEmpty()) {
             rows.add(List.of(new KeyboardButton("✉\uFE0F Рассылка текущего сообщения", "menu_send")));
         }
+
         rows.add(List.of(new KeyboardButton("\uD83D\uDCE2 Подписка на каналы", "menu_chats")));
+
+        if (messageHandler.getPermissionManager()
+                .isAdmin(chatId)) { // Обработка запросов на доступ к боту доступна только админам бота
+            rows.add(List.of(new KeyboardButton("\uD83D\uDD12 Доступ к боту", "menu_access")));
+        }
+        if (messageHandler.getPermissionManager()
+                .isAdmin(chatId)) {
+            rows.add(List.of(new KeyboardButton("❓Запросы на доступ к боту", "menu_access_requests")));
+        }
         //rows.add(List.of(new KeyboardButton("⚙\uFE0F Настройки", "menu_settings")));
         rows.add(List.of(new KeyboardButton("\uD83D\uDCCB История рассылок", "menu_sending_history"), new KeyboardButton("\uD83D\uDCAC Помощь", "menu_help")));
         keyboard.setKeyboard(rows);
@@ -185,7 +193,7 @@ public class Bot extends TelegramLongPollingBot {
 
     public void showSendingHistoryMenu(Long chatId, Integer messageId, List<HistorySending> history) {
         StringBuilder sb = new StringBuilder();
-        sb.append("\uD83D\uDCCB *История отправки собщений*\n\n");
+        sb.append("\uD83D\uDCCB *История отправки сообщений*\n\n");
 
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
@@ -219,6 +227,60 @@ public class Bot extends TelegramLongPollingBot {
                 Описание работы бота""";
 
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(List.of(List.of(new KeyboardButton("\uD83C\uDFE0 Главное меню", BACK_TO_MAIN_CALLBACK_DATA))));
+        if (messageId != null) {
+            updateMessage(chatId, messageId, text, keyboard);
+        } else {
+            sendMessage(chatId, text, keyboard);
+        }
+    }
+
+    public void showRequestAccessMenu(Long userId) {
+        String text = "*Запрос на доступ к боту*";
+
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(List.of(List.of(new KeyboardButton("❓ Запросить доступ", "menu_request_access"))));
+        sendMessage(userId, text, keyboard);
+    }
+
+    public void showAccessRequestsMenu(Long chatId, Integer messageId) {
+        List<AccessRequest> accessRequests = messageHandler.getPermissionManager()
+                .getRequests();
+        String text = String.format("❓ *Запросы на доступ к боту*%n%n%s", accessRequests.isEmpty() ? "Запросов на доступ к боту нет" : "");
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        for (AccessRequest request : accessRequests) {
+            Long userId = request.getUserId();
+            rows.add(List.of(new KeyboardButton(String.format("\uD83D\uDC64 %s (%s)%n", request.getUserName(), request.getStatus()), "access_request_info" + userId)));
+            rows.add(List.of(new KeyboardButton("✅ Принять", "access_request_accept_" + userId), new KeyboardButton("❌ Отклонить", "access_request_reject_" + userId)));
+        }
+        rows.add(List.of(new KeyboardButton("\uD83C\uDFE0 Главное меню", BACK_TO_MAIN_CALLBACK_DATA)));
+        keyboard.setKeyboard(rows);
+
+        if (messageId != null) {
+            updateMessage(chatId, messageId, text, keyboard);
+        } else {
+            sendMessage(chatId, text, keyboard);
+        }
+    }
+
+    public void showGrantedAccessMenu(Long chatId, Integer messageId) {
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        String text = "\uD83D\uDD12 *Доступ к боту*";
+        List<PermissionUser> users = messageHandler.getPermissionManager()
+                .getUsers();
+        for (PermissionUser user : users) {
+            KeyboardButton action = null;
+            if (PermissionUser.UserStatus.BLOCKED.equals(user.getStatus())) {
+                action = new KeyboardButton("✅ Разблокировать", "grant_access_active_" + user.getUserId());
+            } else {
+                action = new KeyboardButton("❌ Заблокировать", "grant_access_blocked_" + user.getUserId());
+            }
+            rows.add(List.of(new KeyboardButton(String.format("\uD83D\uDC64 %s (%s)%n", user.getUserName(), user.getStatus()), "grant_access_" + user.getUserId()), action));
+        }
+        rows.add(List.of(new KeyboardButton("\uD83C\uDFE0 Главное меню", BACK_TO_MAIN_CALLBACK_DATA)));
+        keyboard.setKeyboard(rows);
+
         if (messageId != null) {
             updateMessage(chatId, messageId, text, keyboard);
         } else {

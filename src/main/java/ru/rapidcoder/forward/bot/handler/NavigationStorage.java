@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
-class NavigationStorage {
+public class NavigationStorage {
     private static final Logger logger = LoggerFactory.getLogger(NavigationStorage.class);
     private static final String DB_URL = "jdbc:sqlite:";
     private static NavigationStorage instance;

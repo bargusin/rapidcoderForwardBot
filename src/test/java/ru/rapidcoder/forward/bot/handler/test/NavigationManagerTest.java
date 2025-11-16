@@ -1,11 +1,12 @@
 package ru.rapidcoder.forward.bot.handler.test;
 
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import ru.rapidcoder.forward.bot.handler.ChannelStorage;
 import ru.rapidcoder.forward.bot.handler.NavigationManager;
+import ru.rapidcoder.forward.bot.handler.NavigationStorage;
 
 import java.io.File;
+import java.lang.reflect.Field;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.Assert.assertThrows;
@@ -15,14 +16,22 @@ public class NavigationManagerTest {
     private static final String TEST_DB = "test_chat.db";
     private NavigationManager navigationManager;
 
-    @BeforeAll
-    static void cleanup() {
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @AfterEach
+    void tearDown() throws Exception {
         new File(TEST_DB).delete();
     }
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
+        resetNavigationStorageSingleton();
         navigationManager = new NavigationManager(TEST_DB);
+    }
+
+    private void resetNavigationStorageSingleton() throws Exception {
+        Field instanceField = NavigationStorage.class.getDeclaredField("instance");
+        instanceField.setAccessible(true);
+        instanceField.set(null, null);
     }
 
     @Test

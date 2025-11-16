@@ -42,7 +42,7 @@ dependencies {
     implementation 'org.telegram:telegrambots:6.9.7.1'
     implementation 'org.telegram:telegrambotsextensions:6.9.7.1'
 
-    implementation 'org.xerial:sqlite-jdbc:3.45.1.0'
+    implementation 'org.xerial:sqlite-jdbc:3.50.3.0'
     implementation 'com.google.code.gson:gson:2.10.1'
 
     testImplementation("junit:junit:4.13.2")
