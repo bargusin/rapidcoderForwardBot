@@ -47,7 +47,7 @@ public class MessageHandler {
             bot.showRequestAccessMenu(userId);
         } else {
             if ("/start".equals(messageText)) {
-                bot.showMainMenu(chatId, null);
+                bot.showMainMenu(chatId, null, permissionManager.isAdmin(chatId));
             } else if ("/help".equals(messageText)) {
                 bot.showHelpMenu(chatId, null);
             } else if ("/settings".equals(messageText)) {
@@ -107,29 +107,29 @@ public class MessageHandler {
             } else if (callbackData.startsWith("grant_access_blocked_")) {
                 userId = Long.parseLong(callbackData.substring("grant_access_blocked_".length()));
                 permissionManager.blockedUser(userId);
-                bot.showGrantedAccessMenu(chatId, messageId);
+                bot.showGrantedAccessMenu(chatId, messageId, permissionManager.getUsers());
             } else if (callbackData.startsWith("grant_access_active_")) {
                 userId = Long.parseLong(callbackData.substring("grant_access_active_".length()));
                 permissionManager.activeUser(userId);
-                bot.showGrantedAccessMenu(chatId, messageId);
+                bot.showGrantedAccessMenu(chatId, messageId, permissionManager.getUsers());
             } else if (callbackData.startsWith("access_request_accept_")) {
                 userId = Long.parseLong(callbackData.substring("access_request_accept_".length()));
                 permissionManager.approvedRequest(userId);
                 AccessRequest request = permissionManager.findRequestById(userId)
                         .get();
                 permissionManager.saveUser(userId, request.getUserName());
-                bot.showAccessRequestsMenu(chatId, messageId);
+                bot.showAccessRequestsMenu(chatId, messageId, permissionManager.getRequests());
             } else if (callbackData.startsWith("access_request_reject_")) {
                 userId = Long.parseLong(callbackData.substring("access_request_reject_".length()));
                 permissionManager.approvedRequest(userId);
-                bot.showAccessRequestsMenu(chatId, messageId);
+                bot.showAccessRequestsMenu(chatId, messageId, permissionManager.getRequests());
             } else {
                 switch (callbackData) {
                     case "menu_help" -> {
                         bot.showHelpMenu(chatId, messageId);
                     }
                     case BACK_TO_MAIN_CALLBACK_DATA -> {
-                        bot.showMainMenu(chatId, messageId);
+                        bot.showMainMenu(chatId, messageId, permissionManager.isAdmin(chatId));
                     }
                     case "menu_settings" -> {
                         bot.showSettingsMenu(chatId, messageId);
@@ -154,7 +154,7 @@ public class MessageHandler {
                     case "menu_send_message_clear" -> {
                         bot.getMessagesForSend()
                                 .put(chatId, new ArrayList<>());
-                        bot.showMainMenu(chatId, messageId);
+                        bot.showMainMenu(chatId, messageId, permissionManager.isAdmin(chatId));
                     }
                     case "menu_send_message" -> {
                         List<ChatMembership> chats = channelManager.getAll();
@@ -172,16 +172,16 @@ public class MessageHandler {
                         bot.showNotification(callbackId, "✅ Сообщение отправлено адресатам");
                         bot.getMessagesForSend()
                                 .put(chatId, new ArrayList<>());
-                        bot.showMainMenu(chatId, messageId);
+                        bot.showMainMenu(chatId, messageId, permissionManager.isAdmin(chatId));
                     }
                     case "menu_sending_history" -> {
                         bot.showSendingHistoryMenu(chatId, messageId, channelManager.getHistorySending());
                     }
                     case "menu_access_requests" -> {
-                        bot.showAccessRequestsMenu(chatId, messageId);
+                        bot.showAccessRequestsMenu(chatId, messageId, permissionManager.getRequests());
                     }
                     case "menu_access" -> {
-                        bot.showGrantedAccessMenu(chatId, messageId);
+                        bot.showGrantedAccessMenu(chatId, messageId, permissionManager.getUsers());
                     }
                     case "settings_reset" -> {
                         bot.showNotification(callbackId, "✅ Настройки сброшены к значениям по умолчанию");
@@ -339,10 +339,6 @@ public class MessageHandler {
         } catch (TelegramApiException e) {
             logger.error(e.getMessage(), e);
         }
-    }
-
-    public PermissionManager getPermissionManager() {
-        return permissionManager;
     }
 
     private static class OptionalUtils {
