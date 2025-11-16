@@ -165,7 +165,7 @@ public class MessageHandler {
                             logger.debug("Send forward message into {} ready", chat.getChatTitle());
                             if (!userSelection.contains(i)) {
                                 logger.debug("Try send forward message into {}", chat.getChatTitle());
-                                sendForwardMessage(chat, bot.getMessagesForSend()
+                                sendForwardMessage(chat, userId, userName, bot.getMessagesForSend()
                                         .get(chatId));
                             }
                         }
@@ -271,7 +271,7 @@ public class MessageHandler {
         return "unknown";
     }
 
-    private void sendForwardMessage(ChatMembership chat, List<Message> groupMessages) {
+    private void sendForwardMessage(ChatMembership chat, Long userId, String userName, List<Message> groupMessages) {
         List<InputMedia> mediaList = new ArrayList<>();
         String caption = null;
         for (Message message : groupMessages) {
@@ -306,7 +306,7 @@ public class MessageHandler {
                 List<Message> sending = bot.execute(mediaGroup);
                 try {
                     for (Message message : sending) {
-                        channelManager.saveHistorySending(chat.getChatId(), chat.getUserId(), chat.getUserName(), chat.getChatTitle(), message.getMessageId());
+                        channelManager.saveHistorySending(chat.getChatId(), userId, userName, chat.getChatTitle(), message.getMessageId());
                     }
                 } catch (Exception e) {
                     logger.error(e.getMessage(), e);
@@ -317,11 +317,11 @@ public class MessageHandler {
         }
 
         if (!groupMessages.isEmpty() && mediaList.size() < 2) {
-            sendCopyMessage(chat, groupMessages.get(0));
+            sendCopyMessage(chat, userId, userName, groupMessages.get(0));
         }
     }
 
-    public void sendCopyMessage(ChatMembership chat, Message message) {
+    public void sendCopyMessage(ChatMembership chat, Long userId, String userName, Message message) {
         CopyMessage copy = new CopyMessage();
         copy.setChatId(chat.getChatId());
         copy.setFromChatId(message.getChatId()
@@ -331,7 +331,7 @@ public class MessageHandler {
         try {
             MessageId sending = bot.execute(copy);
             try {
-                channelManager.saveHistorySending(chat.getChatId(), chat.getUserId(), chat.getUserName(), chat.getChatTitle(), sending.getMessageId()
+                channelManager.saveHistorySending(chat.getChatId(), userId, userName, chat.getChatTitle(), sending.getMessageId()
                         .intValue());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
