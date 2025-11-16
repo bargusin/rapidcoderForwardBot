@@ -12,7 +12,6 @@ import ru.rapidcoder.forward.bot.handler.PermissionManager;
 
 import java.io.File;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
@@ -20,11 +19,10 @@ import static org.mockito.Mockito.*;
 public class MessageHandlerTest {
     private static final String TEST_DB = "test_chat.db";
     private final Long adminUserId = 100L;
-    private MessageHandler messageHandler;
-    private Bot botSpy;
-
     private final ChannelManager mockChannelManager = mock(ChannelManager.class);
     private final PermissionManager mockPermissionManager = mock(PermissionManager.class);
+    private MessageHandler messageHandler;
+    private Bot botSpy;
 
     @BeforeAll
     @AfterAll
