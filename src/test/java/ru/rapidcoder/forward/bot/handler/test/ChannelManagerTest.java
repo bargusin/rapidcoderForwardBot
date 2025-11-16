@@ -1,14 +1,16 @@
 package ru.rapidcoder.forward.bot.handler.test;
 
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import ru.rapidcoder.forward.bot.dto.ChatMembership;
 import ru.rapidcoder.forward.bot.dto.HistoryChatMembership;
 import ru.rapidcoder.forward.bot.handler.ChannelManager;
+import ru.rapidcoder.forward.bot.handler.ChannelStorage;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -19,14 +21,22 @@ public class ChannelManagerTest {
     private static final String TEST_DB = "test_chat.db";
     private ChannelManager channelManager;
 
-    @BeforeAll
-    static void cleanup() {
+    @BeforeEach
+    void setUp() throws Exception {
+        resetChannelStorageSingleton();
+        channelManager = new ChannelManager(TEST_DB);
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @AfterEach
+    void tearDown() throws Exception {
         new File(TEST_DB).delete();
     }
 
-    @BeforeEach
-    void setUp() {
-        channelManager = new ChannelManager(TEST_DB);
+    private void resetChannelStorageSingleton() throws Exception {
+        Field instanceField = ChannelStorage.class.getDeclaredField("instance");
+        instanceField.setAccessible(true);
+        instanceField.set(null, null);
     }
 
     @Test

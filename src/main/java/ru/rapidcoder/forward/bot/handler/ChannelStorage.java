@@ -14,7 +14,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-class ChannelStorage {
+public class ChannelStorage {
     private static final Logger logger = LoggerFactory.getLogger(ChannelStorage.class);
     private static final String DB_URL = "jdbc:sqlite:";
     private static ChannelStorage instance;
