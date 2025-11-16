@@ -83,7 +83,7 @@ public class Bot extends TelegramLongPollingBot {
         messageHandler.handleChatMember(update);
     }
 
-    public void showMainMenu(Long chatId, Integer messageId) {
+    public void showMainMenu(Long chatId, Integer messageId, boolean isAdmin) {
         String text = "\uD83C\uDFE0 *Главное меню*";
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
@@ -95,12 +95,10 @@ public class Bot extends TelegramLongPollingBot {
 
         rows.add(List.of(new KeyboardButton("\uD83D\uDCE2 Подписка на каналы", "menu_chats")));
 
-        if (messageHandler.getPermissionManager()
-                .isAdmin(chatId)) { // Обработка запросов на доступ к боту доступна только админам бота
+        if (isAdmin) { // Обработка запросов на доступ к боту доступна только админам бота
             rows.add(List.of(new KeyboardButton("\uD83D\uDD12 Доступ к боту", "menu_access")));
         }
-        if (messageHandler.getPermissionManager()
-                .isAdmin(chatId)) {
+        if (isAdmin) {
             rows.add(List.of(new KeyboardButton("❓Запросы на доступ к боту", "menu_access_requests")));
         }
         //rows.add(List.of(new KeyboardButton("⚙\uFE0F Настройки", "menu_settings")));
@@ -219,32 +217,32 @@ public class Bot extends TelegramLongPollingBot {
 
     public void showHelpMenu(Long chatId, Integer messageId) {
         String text = """
-               \uD83D\uDCAC *Помощь по боту*
-               
-               *Основные команды:*
-               `/start` - Главное меню
-               `/help` - Помощь
-               
-               Для того чтобы бот смог отправлять сообщения в каналы, его необходимо добавить администратором в эти каналы с соответствующим доступом.
-               
-               В боте реализована ролевая модель доступа к боту. Список администраторов, которые могут управлять доступом к боту для других пользователей, указывается при установке бота на сервер. Обычный пользователь запустив бот, не сможет получить к нему доступ. Он увидит кнопку *[Запросить доступ]*, нажав на которую, отправит уведомление на предоставления доступа.
-               
-               Если пользователю предоставлен доступ, или пользователь является администратором бота, то ему доступен следующий функционал:
-               *[Подписка на каналы]* - список каналов, в которых бот является администратором и может отправлять в них сообщения.
-                    *[История подписок]* - история действий, которые производились с ботом в каналах, включая исключение его из администраторов.
-                    *[Выгрузить данные о подписках]* - выгружается бэкап с данными сервера.
-               *[Доступ к боту]* - (доступно только администраторам) управление предоставлением доступа пользователей к боту (возможно как заблокировать, так и разблокировать пользователя).
-               *[Запросы на доступ к боту]* - (доступно только администраторам) список запросов от пользователей на предоставление доступа.
-               *[История рассылок]* - список сообщений, которые отправлялись из бота в каналы.
-               
-               Как работает отправка сообщений в каналы:
-               1. Пользователь пересылает сообщение в бот.
-               2. Спустя 2 секунды появляется список каналов, на который подписан бот, а также кнопки *[Отправить]* и *[Очистить]*.
-               3. Пользователь может убрать из списка каналов те, в которые он не хочет отправлять сообщение.
-               4. После нажатия кнопки *[Отправить]* сообщение будет отправлено в выбранные каналы, история о рассылке сохранится.
-               5. После завершения рассылки вверху интерфейса телеграм появится соответствующее всплывающее сообщение и пропадут кнопки управления отправкой.
-               6. Бот снова готов к приему пересылаемого сообщения.
-               """;
+                \uD83D\uDCAC *Помощь по боту*
+                
+                *Основные команды:*
+                `/start` - Главное меню
+                `/help` - Помощь
+                
+                Для того чтобы бот смог отправлять сообщения в каналы, его необходимо добавить администратором в эти каналы с соответствующим доступом.
+                
+                В боте реализована ролевая модель доступа к боту. Список администраторов, которые могут управлять доступом к боту для других пользователей, указывается при установке бота на сервер. Обычный пользователь запустив бот, не сможет получить к нему доступ. Он увидит кнопку *[Запросить доступ]*, нажав на которую, отправит уведомление на предоставления доступа.
+                
+                Если пользователю предоставлен доступ, или пользователь является администратором бота, то ему доступен следующий функционал:
+                *[Подписка на каналы]* - список каналов, в которых бот является администратором и может отправлять в них сообщения.
+                     *[История подписок]* - история действий, которые производились с ботом в каналах, включая исключение его из администраторов.
+                     *[Выгрузить данные о подписках]* - выгружается бэкап с данными сервера.
+                *[Доступ к боту]* - (доступно только администраторам) управление предоставлением доступа пользователей к боту (возможно как заблокировать, так и разблокировать пользователя).
+                *[Запросы на доступ к боту]* - (доступно только администраторам) список запросов от пользователей на предоставление доступа.
+                *[История рассылок]* - список сообщений, которые отправлялись из бота в каналы.
+                
+                Как работает отправка сообщений в каналы:
+                1. Пользователь пересылает сообщение в бот.
+                2. Спустя 2 секунды появляется список каналов, на который подписан бот, а также кнопки *[Отправить]* и *[Очистить]*.
+                3. Пользователь может убрать из списка каналов те, в которые он не хочет отправлять сообщение.
+                4. После нажатия кнопки *[Отправить]* сообщение будет отправлено в выбранные каналы, история о рассылке сохранится.
+                5. После завершения рассылки вверху интерфейса телеграм появится соответствующее всплывающее сообщение и пропадут кнопки управления отправкой.
+                6. Бот снова готов к приему пересылаемого сообщения.
+                """;
 
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(List.of(List.of(new KeyboardButton("\uD83C\uDFE0 Главное меню", BACK_TO_MAIN_CALLBACK_DATA))));
         if (messageId != null) {
@@ -261,9 +259,7 @@ public class Bot extends TelegramLongPollingBot {
         sendMessage(userId, text, keyboard);
     }
 
-    public void showAccessRequestsMenu(Long chatId, Integer messageId) {
-        List<AccessRequest> accessRequests = messageHandler.getPermissionManager()
-                .getRequests();
+    public void showAccessRequestsMenu(Long chatId, Integer messageId, List<AccessRequest> accessRequests) {
         String text = String.format("❓ *Запросы на доступ к боту*%n%n%s", accessRequests.isEmpty() ? "Запросов на доступ к боту нет" : "");
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
@@ -282,13 +278,11 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
-    public void showGrantedAccessMenu(Long chatId, Integer messageId) {
+    public void showGrantedAccessMenu(Long chatId, Integer messageId, List<PermissionUser> users) {
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
         String text = "\uD83D\uDD12 *Доступ к боту*";
-        List<PermissionUser> users = messageHandler.getPermissionManager()
-                .getUsers();
         for (PermissionUser user : users) {
             KeyboardButton action = null;
             if (PermissionUser.UserStatus.BLOCKED.equals(user.getStatus())) {

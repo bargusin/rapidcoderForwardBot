@@ -6,9 +6,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.telegram.telegrambots.meta.api.objects.*;
 import ru.rapidcoder.forward.bot.Bot;
+import ru.rapidcoder.forward.bot.handler.ChannelManager;
 import ru.rapidcoder.forward.bot.handler.MessageHandler;
+import ru.rapidcoder.forward.bot.handler.PermissionManager;
 
 import java.io.File;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
@@ -19,6 +23,9 @@ public class MessageHandlerTest {
     private MessageHandler messageHandler;
     private Bot botSpy;
 
+    private final ChannelManager mockChannelManager = mock(ChannelManager.class);
+    private final PermissionManager mockPermissionManager = mock(PermissionManager.class);
+
     @BeforeAll
     @AfterAll
     static void cleanup() {
@@ -26,8 +33,8 @@ public class MessageHandlerTest {
     }
 
     @BeforeEach
-    void setUp() {
-        Bot bot = new Bot("testBot", "testToken", TEST_DB, List.of(100L));
+    void setUp() throws IllegalAccessException, NoSuchFieldException {
+        Bot bot = new Bot("testBot", "testToken", TEST_DB, List.of(adminUserId));
         botSpy = spy(bot);
 
         doNothing().when(botSpy)
@@ -36,53 +43,28 @@ public class MessageHandlerTest {
                 .updateMessage(any(), any(), any(), any());
 
         messageHandler = new MessageHandler(botSpy, TEST_DB, List.of(adminUserId));
-    }
 
-    private Update createUpdateWithText(Long chatId, Long userId, String text) {
-        Update update = new Update();
-        Message message = new Message();
-        Chat chat = new Chat();
-        User user = new User();
-        chat.setId(chatId);
-        user.setId(userId);
-        message.setChat(chat);
-        message.setText(text);
-        message.setFrom(user);
+        Field channelManagerField = MessageHandler.class.getDeclaredField("channelManager");
+        channelManagerField.setAccessible(true);
+        channelManagerField.set(messageHandler, mockChannelManager);
 
-        update.setMessage(message);
+        Field permissionManagerField = MessageHandler.class.getDeclaredField("permissionManager");
+        permissionManagerField.setAccessible(true);
+        permissionManagerField.set(messageHandler, mockPermissionManager);
 
-        return update;
-    }
-
-    private Update createUpdateWithCallbackQuery(Long chatId, Long userId, String callbackData) {
-        Update update = new Update();
-        Message message = new Message();
-        CallbackQuery callbackQuery = new CallbackQuery();
-        Chat chat = new Chat();
-        User user = new User();
-        user.setId(userId);
-        chat.setId(chatId);
-        message.setChat(chat);
-        callbackQuery.setData(callbackData);
-        callbackQuery.setMessage(message);
-        callbackQuery.setFrom(user);
-
-        update.setCallbackQuery(callbackQuery);
-
-        return update;
+        when(mockPermissionManager.hasAccess(adminUserId)).thenReturn(true);
     }
 
     @Test
     void testShowMainMenu() {
         Update update = createUpdateWithText(1L, adminUserId, "/start");
         messageHandler.handleCommand(update);
-
-        verify(botSpy).showMainMenu(1L, null);
-        verify(botSpy, never()).showMainMenu(2L, null);
+        verify(botSpy).showMainMenu(1L, null, false);
+        verify(botSpy, never()).showMainMenu(2L, null, false);
 
         update = createUpdateWithText(1L, adminUserId, "/help");
         messageHandler.handleCommand(update);
-        verify(botSpy).showMainMenu(1L, null);
+        verify(botSpy).showMainMenu(1L, null, false);
     }
 
     @Test
@@ -90,14 +72,14 @@ public class MessageHandlerTest {
         Update update = createUpdateWithText(1L, 2L, "/start");
         messageHandler.handleCommand(update);
         verify(botSpy).showRequestAccessMenu(2L);
-        verify(botSpy, never()).showMainMenu(1L, null);
+        verify(botSpy, never()).showMainMenu(1L, null, false);
     }
 
     @Test
     void testShowHelpMenu() {
         Update update = createUpdateWithText(1L, adminUserId, "/help");
         messageHandler.handleCommand(update);
-        verify(botSpy, never()).showMainMenu(1L, null);
+        verify(botSpy, never()).showMainMenu(1L, null, true);
         verify(botSpy).showHelpMenu(1L, null);
     }
 
@@ -148,5 +130,53 @@ public class MessageHandlerTest {
         Update update = createUpdateWithCallbackQuery(1L, adminUserId, "menu_chats");
         messageHandler.handleCallback(update);
         verify(botSpy).showChatsMenu(any(), any(), any());
+    }
+
+    @Test
+    void testHandleCallbackAccessRequestsMenu() {
+        Update update = createUpdateWithCallbackQuery(1L, adminUserId, "menu_access_requests");
+        messageHandler.handleCallback(update);
+        verify(botSpy).showAccessRequestsMenu(any(), any(), any());
+    }
+
+    @Test
+    void testHandleCallbackGrantedAccessMenu() {
+        Update update = createUpdateWithCallbackQuery(1L, adminUserId, "menu_access");
+        messageHandler.handleCallback(update);
+        verify(botSpy).showGrantedAccessMenu(any(), any(), any());
+    }
+
+    private Update createUpdateWithText(Long chatId, Long userId, String text) {
+        Update update = new Update();
+        Message message = new Message();
+        Chat chat = new Chat();
+        User user = new User();
+        chat.setId(chatId);
+        user.setId(userId);
+        message.setChat(chat);
+        message.setText(text);
+        message.setFrom(user);
+
+        update.setMessage(message);
+
+        return update;
+    }
+
+    private Update createUpdateWithCallbackQuery(Long chatId, Long userId, String callbackData) {
+        Update update = new Update();
+        Message message = new Message();
+        CallbackQuery callbackQuery = new CallbackQuery();
+        Chat chat = new Chat();
+        User user = new User();
+        user.setId(userId);
+        chat.setId(chatId);
+        message.setChat(chat);
+        callbackQuery.setData(callbackData);
+        callbackQuery.setMessage(message);
+        callbackQuery.setFrom(user);
+
+        update.setCallbackQuery(callbackQuery);
+
+        return update;
     }
 }
