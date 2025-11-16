@@ -1,6 +1,8 @@
 package ru.rapidcoder.forward.bot.handler.test;
 
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -8,11 +10,8 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.telegram.telegrambots.meta.api.objects.*;
 import ru.rapidcoder.forward.bot.Bot;
-import ru.rapidcoder.forward.bot.handler.ChannelStorage;
-import ru.rapidcoder.forward.bot.handler.MessageHandler;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
@@ -21,25 +20,19 @@ import static org.mockito.Mockito.*;
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class BotTest {
 
+    private static final String TEST_DB = "test_chat.db";
     @Mock
     private Bot bot;
-
     @Mock
     private Update update;
-
     @Mock
     private Message message;
-
     @Mock
     private User user;
-
     @Mock
     private CallbackQuery callbackQuery;
-
     @Mock
     private ChatMemberUpdated chatMember;
-
-    private static final String TEST_DB = "test_chat.db";
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     @AfterEach

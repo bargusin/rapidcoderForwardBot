@@ -1,7 +1,8 @@
 package ru.rapidcoder.forward.bot.handler.test;
 
-import org.junit.jupiter.api.*;
-import ru.rapidcoder.forward.bot.handler.ChannelStorage;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import ru.rapidcoder.forward.bot.handler.NavigationManager;
 import ru.rapidcoder.forward.bot.handler.NavigationStorage;
 

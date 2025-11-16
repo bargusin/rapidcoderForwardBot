@@ -1,12 +1,13 @@
 package ru.rapidcoder.forward.bot.handler.test;
 
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import ru.rapidcoder.forward.bot.dto.ChatMembership;
 import ru.rapidcoder.forward.bot.dto.HistoryChatMembership;
 import ru.rapidcoder.forward.bot.handler.ChannelManager;
 import ru.rapidcoder.forward.bot.handler.ChannelStorage;
-import ru.rapidcoder.forward.bot.handler.PermissionStorage;
 
 import java.io.File;
 import java.lang.reflect.Field;
