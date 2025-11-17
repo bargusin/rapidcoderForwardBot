@@ -6,13 +6,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.telegram.telegrambots.meta.api.objects.*;
 import ru.rapidcoder.forward.bot.Bot;
+import ru.rapidcoder.forward.bot.dto.ChatMembership;
 import ru.rapidcoder.forward.bot.handler.ChannelManager;
 import ru.rapidcoder.forward.bot.handler.MessageHandler;
 import ru.rapidcoder.forward.bot.handler.PermissionManager;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.Mockito.*;
 
@@ -39,6 +43,8 @@ public class MessageHandlerTest {
                 .sendMessage(any(), any(), any());
         doNothing().when(botSpy)
                 .updateMessage(any(), any(), any(), any());
+        doNothing().when(botSpy)
+                .showNotification(any(), any());
 
         messageHandler = new MessageHandler(botSpy, TEST_DB, List.of(adminUserId));
 
@@ -144,6 +150,42 @@ public class MessageHandlerTest {
         verify(botSpy).showGrantedAccessMenu(any(), any(), any());
     }
 
+    @Test
+    void testHandleCallbackMenuRequestAccess() {
+        Update update = createUpdateWithCallbackQuery(1L, 2L, "menu_request_access");
+        messageHandler.handleCallback(update);
+        verify(mockPermissionManager).saveRequest(any(), any());
+        verify(botSpy).sendMessage(any(), any(), any());
+    }
+
+    @Test
+    void testHandleCallbackChatToggle() {
+        Update update = createUpdateWithCallbackQuery(1L, adminUserId, "chat_toggle_1");
+        messageHandler.handleCallback(update);
+        verify(botSpy).showSendMenu(any(), any(), any());
+    }
+
+    @Test
+    void testHandleCallbackMenuSendMessage() {
+        List<ChatMembership> chats = new ArrayList<>();
+        ChatMembership chat = new ChatMembership();
+        chat.setChatId(1L);
+        chats.add(chat);
+        when(mockChannelManager.getAll()).thenReturn(chats);
+
+        Map<Long, List<Message>> map = new HashMap<>();
+        map.put(1L, new ArrayList<>());
+        when(botSpy.getMessagesForSend()).thenReturn(map);
+
+        Update update = createUpdateWithCallbackQuery(1L, adminUserId, "menu_send_message");
+        messageHandler.handleCallback(update);
+
+        verify(botSpy).showNotification(any(), any());
+        verify(botSpy).showMainMenu(1L, null, false);
+
+
+    }
+
     private Update createUpdateWithText(Long chatId, Long userId, String text) {
         Update update = new Update();
         Message message = new Message();
@@ -172,6 +214,7 @@ public class MessageHandlerTest {
         callbackQuery.setData(callbackData);
         callbackQuery.setMessage(message);
         callbackQuery.setFrom(user);
+        callbackQuery.setId("1");
 
         update.setCallbackQuery(callbackQuery);
 
