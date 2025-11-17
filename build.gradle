@@ -15,12 +15,30 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
+def getVersionName = { ->
+    try {
+        def stdout = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'describe', '--tags', '--always'
+            standardOutput = stdout
+        }
+        def tag = stdout.toString().trim()
+        return (tag != null && !tag.isEmpty()) ? tag : "git-${stdout.toString().trim()}"
+    } catch (Exception e) {
+        return "0.0.1-SNAPSHOT"
+    }
+}
+
+version = getVersionName()
+
 jar {
     archiveBaseName = 'rapidcoderForwardBot'
-    version = '0.1.0'
+    archiveVersion = project.version
 
     manifest {
         attributes(
+                'Implementation-Title': project.name,
+                'Implementation-Version': project.version,
                 'Main-Class': 'ru.rapidcoder.forward.bot.Main'
         )
     }
@@ -96,7 +114,7 @@ jacocoTestReport {
         afterEvaluate {
             classDirectories.setFrom(files(classDirectories.files.collect {
                 fileTree(dir: it, exclude: [
-                    '**/config/**'
+                        '**/config/**'
                 ])
             }))
         }
