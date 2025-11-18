@@ -87,8 +87,12 @@ public class MessageHandler {
                         .getLastName());
 
         if ("menu_request_access".equals(callbackData)) {
-            permissionManager.saveRequest(userId, userName);
-            bot.sendMessage(chatId, "Запрос на предоставление доступа к боту отправлен", null);
+            if (permissionManager.hasAccess(userId)) {
+                bot.showMainMenu(chatId, null, permissionManager.isAdmin(userId));
+            } else {
+                permissionManager.saveRequest(userId, userName);
+                bot.sendMessage(chatId, "Запрос на предоставление доступа к боту отправлен", null);
+            }
         } else if (permissionManager.hasAccess(userId)) {
             if (callbackData.startsWith("chat_toggle_")) {
                 int chatIndex = Integer.parseInt(callbackData.substring("chat_toggle_".length()));
@@ -128,7 +132,7 @@ public class MessageHandler {
                         bot.showHelpMenu(chatId, messageId);
                     }
                     case BACK_TO_MAIN_CALLBACK_DATA -> {
-                        bot.showMainMenu(chatId, messageId, permissionManager.isAdmin(chatId));
+                        bot.showMainMenu(chatId, messageId, permissionManager.isAdmin(userId));
                     }
                     case "menu_settings" -> {
                         bot.showSettingsMenu(chatId, messageId);
@@ -153,7 +157,7 @@ public class MessageHandler {
                     case "menu_send_message_clear" -> {
                         bot.getMessagesForSend()
                                 .put(chatId, new ArrayList<>());
-                        bot.showMainMenu(chatId, messageId, permissionManager.isAdmin(chatId));
+                        bot.showMainMenu(chatId, messageId, permissionManager.isAdmin(userId));
                     }
                     case "menu_send_message" -> {
                         List<ChatMembership> chats = channelManager.getAll();
@@ -171,7 +175,7 @@ public class MessageHandler {
                         bot.showNotification(callbackId, "✅ Сообщение отправлено адресатам");
                         bot.getMessagesForSend()
                                 .put(chatId, new ArrayList<>());
-                        bot.showMainMenu(chatId, messageId, permissionManager.isAdmin(chatId));
+                        bot.showMainMenu(chatId, messageId, permissionManager.isAdmin(userId));
                     }
                     case "menu_sending_history" -> {
                         bot.showSendingHistoryMenu(chatId, messageId, channelManager.getHistorySending());
