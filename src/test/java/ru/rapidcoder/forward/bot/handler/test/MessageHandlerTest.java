@@ -1,11 +1,13 @@
 package ru.rapidcoder.forward.bot.handler.test;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.objects.*;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.Bot;
+import ru.rapidcoder.forward.bot.dto.AccessRequest;
 import ru.rapidcoder.forward.bot.dto.ChatMembership;
 import ru.rapidcoder.forward.bot.handler.ChannelManager;
 import ru.rapidcoder.forward.bot.handler.MessageHandler;
@@ -18,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.*;
 
 public class MessageHandlerTest {
@@ -28,14 +31,13 @@ public class MessageHandlerTest {
     private MessageHandler messageHandler;
     private Bot botSpy;
 
-    @BeforeAll
-    @AfterAll
-    static void cleanup() {
+    @AfterEach
+    void cleanup() {
         new File(TEST_DB).delete();
     }
 
     @BeforeEach
-    void setUp() throws IllegalAccessException, NoSuchFieldException {
+    void setUp() throws IllegalAccessException, NoSuchFieldException, TelegramApiException {
         Bot bot = new Bot("testBot", "testToken", TEST_DB, List.of(adminUserId));
         botSpy = spy(bot);
 
@@ -57,6 +59,41 @@ public class MessageHandlerTest {
         permissionManagerField.set(messageHandler, mockPermissionManager);
 
         when(mockPermissionManager.hasAccess(adminUserId)).thenReturn(true);
+    }
+
+    private Update createUpdateWithText(Long chatId, Long userId, String text) {
+        Update update = new Update();
+        Message message = new Message();
+        Chat chat = new Chat();
+        User user = new User();
+        chat.setId(chatId);
+        user.setId(userId);
+        message.setChat(chat);
+        message.setText(text);
+        message.setFrom(user);
+
+        update.setMessage(message);
+
+        return update;
+    }
+
+    private Update createUpdateWithCallbackQuery(Long chatId, Long userId, String callbackData) {
+        Update update = new Update();
+        Message message = new Message();
+        CallbackQuery callbackQuery = new CallbackQuery();
+        Chat chat = new Chat();
+        User user = new User();
+        user.setId(userId);
+        chat.setId(chatId);
+        message.setChat(chat);
+        callbackQuery.setData(callbackData);
+        callbackQuery.setMessage(message);
+        callbackQuery.setFrom(user);
+        callbackQuery.setId("1");
+
+        update.setCallbackQuery(callbackQuery);
+
+        return update;
     }
 
     @Test
@@ -182,42 +219,109 @@ public class MessageHandlerTest {
 
         verify(botSpy).showNotification(any(), any());
         verify(botSpy).showMainMenu(1L, null, false);
-
-
     }
 
-    private Update createUpdateWithText(Long chatId, Long userId, String text) {
-        Update update = new Update();
-        Message message = new Message();
-        Chat chat = new Chat();
-        User user = new User();
-        chat.setId(chatId);
-        user.setId(userId);
-        message.setChat(chat);
-        message.setText(text);
-        message.setFrom(user);
-
-        update.setMessage(message);
-
-        return update;
+    @Test
+    void testHandleCallbackGrantAccessBlocked() {
+        Update update = createUpdateWithCallbackQuery(1L, adminUserId, "grant_access_blocked_2");
+        messageHandler.handleCallback(update);
+        verify(mockPermissionManager).blockedUser(2L);
+        verify(botSpy).showGrantedAccessMenu(any(), any(), any());
     }
 
-    private Update createUpdateWithCallbackQuery(Long chatId, Long userId, String callbackData) {
-        Update update = new Update();
-        Message message = new Message();
-        CallbackQuery callbackQuery = new CallbackQuery();
-        Chat chat = new Chat();
-        User user = new User();
-        user.setId(userId);
-        chat.setId(chatId);
-        message.setChat(chat);
-        callbackQuery.setData(callbackData);
-        callbackQuery.setMessage(message);
-        callbackQuery.setFrom(user);
-        callbackQuery.setId("1");
+    @Test
+    void testHandleCallbackGrantAccessActive() {
+        Update update = createUpdateWithCallbackQuery(1L, adminUserId, "grant_access_active_2");
+        messageHandler.handleCallback(update);
+        verify(mockPermissionManager).activeUser(2L);
+        verify(botSpy).showGrantedAccessMenu(any(), any(), any());
+    }
 
-        update.setCallbackQuery(callbackQuery);
+    @Test
+    void testHandleCallbackAccessRequestAccept() {
+        AccessRequest request = new AccessRequest();
+        request.setUserName("John Smith");
+        when(mockPermissionManager.findRequestById(3L)).thenReturn(request);
 
-        return update;
+        Update update = createUpdateWithCallbackQuery(1L, adminUserId, "access_request_accept_3");
+        messageHandler.handleCallback(update);
+        verify(mockPermissionManager).approvedRequest(3L);
+        verify(mockPermissionManager).saveUser(3L, "John Smith");
+        verify(botSpy).showAccessRequestsMenu(any(), any(), any());
+    }
+
+    @Test
+    void testHandleCallbackAccessRequestAcceptByNotFoundRequest() {
+        AccessRequest request = new AccessRequest();
+        request.setUserName("John Smith");
+        when(mockPermissionManager.findRequestById(10000L)).thenReturn(request);
+
+        Update update = createUpdateWithCallbackQuery(1L, adminUserId, "access_request_accept_3");
+        assertThrows(NullPointerException.class, () -> {
+            messageHandler.handleCallback(update);
+        });
+        verify(mockPermissionManager, never()).approvedRequest(10000L);
+        verify(mockPermissionManager, never()).saveUser(3L, "John Smith");
+        verify(botSpy, never()).showAccessRequestsMenu(any(), any(), any());
+    }
+
+    @Test
+    void testHandleCallbackAccessRequestReject() {
+        Update update = createUpdateWithCallbackQuery(1L, adminUserId, "access_request_reject_3");
+        messageHandler.handleCallback(update);
+        verify(mockPermissionManager).rejectRequest(3L);
+        verify(botSpy).showAccessRequestsMenu(any(), any(), any());
+    }
+
+    @Test
+    void testHandleCallbackBackToMain() {
+        Update update = createUpdateWithCallbackQuery(1L, adminUserId, "back_to_main");
+        messageHandler.handleCallback(update);
+        verify(botSpy).showMainMenu(1L, null, false);
+    }
+
+    @Test
+    void testHandleCallbackMenuSettings() {
+        Update update = createUpdateWithCallbackQuery(1L, adminUserId, "menu_settings");
+        messageHandler.handleCallback(update);
+        verify(botSpy).showSettingsMenu(1L, null);
+    }
+
+    @Test
+    void testHandleCallbackMenuChatsUpload() throws TelegramApiException {
+        doThrow(new RuntimeException()).when(botSpy)
+                .execute(any(SendDocument.class));
+
+        Update update = createUpdateWithCallbackQuery(1L, adminUserId, "menu_chats_upload");
+        messageHandler.handleCallback(update);
+        verify(mockChannelManager).uploadData(1L);
+    }
+
+    @Test
+    void testHandleCallbackMenuSend() {
+        Update update = createUpdateWithCallbackQuery(1L, adminUserId, "menu_send");
+        messageHandler.handleCallback(update);
+        verify(botSpy).showSendMenu(any(), any(), any());
+    }
+
+    @Test
+    void testHandleCallbackMenuSendMessageClear() {
+        Update update = createUpdateWithCallbackQuery(1L, adminUserId, "menu_send_message_clear");
+        messageHandler.handleCallback(update);
+        verify(botSpy).showMainMenu(1L, null, false);
+    }
+
+    @Test
+    void testHandleCallbackSettingsReset() {
+        Update update = createUpdateWithCallbackQuery(1L, adminUserId, "settings_reset");
+        messageHandler.handleCallback(update);
+        verify(botSpy).showNotification(any(), any());
+    }
+
+    @Test
+    void testHandleCallbackSettingsSave() {
+        Update update = createUpdateWithCallbackQuery(1L, adminUserId, "settings_save");
+        messageHandler.handleCallback(update);
+        verify(botSpy).showNotification(any(), any());
     }
 }

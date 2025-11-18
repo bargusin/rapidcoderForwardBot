@@ -11,7 +11,6 @@ import ru.rapidcoder.forward.bot.handler.PermissionStorage;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.Assert.assertThrows;
@@ -46,8 +45,24 @@ public class PermissionManagerTest {
         });
 
         permissionManager.saveUser(1L, "userName");
-        PermissionUser user = permissionManager.findUserById(1L)
-                .orElseThrow();
+        PermissionUser user = permissionManager.findUserById(1L);
+        assertThat(user.getUserId()).isEqualTo(1L);
+        assertThat(user.getUserName()).isEqualTo("userName");
+        assertThat(user.getStatus()).isEqualTo(PermissionUser.UserStatus.ACTIVE);
+        assertThat(user.getRole()).isEqualTo(PermissionUser.UserRole.MEMBER);
+    }
+
+    @Test
+    void testGetUsers() {
+        permissionManager.saveUser(1L, "userName");
+        List<PermissionUser> users = permissionManager.getUsers();
+        assertThat(users.size()).isEqualTo(1);
+
+        permissionManager.saveRequest(1L, "userName");
+        users = permissionManager.getUsers();
+        assertThat(users.size()).isEqualTo(1);
+
+        PermissionUser user = users.get(0);
         assertThat(user.getUserId()).isEqualTo(1L);
         assertThat(user.getUserName()).isEqualTo("userName");
         assertThat(user.getStatus()).isEqualTo(PermissionUser.UserStatus.ACTIVE);
@@ -96,7 +111,7 @@ public class PermissionManagerTest {
         requests = permissionManager.getRequests();
         assertThat(requests.size()).isEqualTo(0);
 
-        request = permissionManager.findRequestById(1L).get();
+        request = permissionManager.findRequestById(1L);
         assertThat(request.getUserId()).isEqualTo(1L);
         assertThat(request.getUserName()).isEqualTo("userName");
         assertThat(request.getStatus()).isEqualTo(AccessRequest.RequestStatus.APPROVED);
@@ -117,7 +132,7 @@ public class PermissionManagerTest {
         requests = permissionManager.getRequests();
         assertThat(requests.size()).isEqualTo(0);
 
-        request = permissionManager.findRequestById(1L).get();
+        request = permissionManager.findRequestById(1L);
         assertThat(request.getUserId()).isEqualTo(1L);
         assertThat(request.getUserName()).isEqualTo("userName");
         assertThat(request.getStatus()).isEqualTo(AccessRequest.RequestStatus.REJECT);
@@ -126,30 +141,27 @@ public class PermissionManagerTest {
     @Test
     void testFindUser() {
         permissionManager.saveUser(1L, "userName");
-        Optional<PermissionUser> user = permissionManager.findUserById(1L);
-        assertThat(user).isPresent();
+        PermissionUser user = permissionManager.findUserById(1L);
+        assertThat(user).isNotNull();
         user = permissionManager.findUserById(2L);
-        assertThat(user).isNotPresent();
+        assertThat(user).isNull();
     }
 
     @Test
     void testUpdateStatus() {
         permissionManager.saveUser(1L, "userName");
 
-        PermissionUser user = permissionManager.findUserById(1L)
-                .orElseThrow();
+        PermissionUser user = permissionManager.findUserById(1L);
         assertThat(user.getUserId()).isEqualTo(1L);
         assertThat(user.getUserName()).isEqualTo("userName");
         assertThat(user.getStatus()).isEqualTo(PermissionUser.UserStatus.ACTIVE);
 
         permissionManager.activeUser(1L);
-        user = permissionManager.findUserById(1L)
-                .orElseThrow();
+        user = permissionManager.findUserById(1L);
         assertThat(user.getStatus()).isEqualTo(PermissionUser.UserStatus.ACTIVE);
 
         permissionManager.blockedUser(1L);
-        user = permissionManager.findUserById(1L)
-                .orElseThrow();
+        user = permissionManager.findUserById(1L);
         assertThat(user.getStatus()).isEqualTo(PermissionUser.UserStatus.BLOCKED);
     }
 }

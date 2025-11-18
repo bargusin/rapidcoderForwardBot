@@ -33,12 +33,12 @@ public class PermissionManager {
         storage.updateUserStatus(userId, PermissionUser.UserStatus.BLOCKED);
     }
 
-    public Optional<PermissionUser> findUserById(Long userId) {
-        return Optional.ofNullable(storage.findUserById(userId));
+    public PermissionUser findUserById(Long userId) {
+        return storage.findUserById(userId);
     }
 
-    public Optional<AccessRequest> findRequestById(Long userId) {
-        return Optional.ofNullable(storage.findRequestById(userId));
+    public AccessRequest findRequestById(Long userId) {
+        return storage.findRequestById(userId);
     }
 
     public void approvedRequest(Long userId) {
@@ -54,7 +54,8 @@ public class PermissionManager {
     }
 
     public boolean hasAccess(Long userId) {
-        return isAdmin(userId) || findUserById(userId).map(user -> user.getStatus() == PermissionUser.UserStatus.ACTIVE)
+        return isAdmin(userId) || Optional.of(findUserById(userId))
+                .map(user -> user.getStatus() == PermissionUser.UserStatus.ACTIVE)
                 .orElse(false);
     }
 

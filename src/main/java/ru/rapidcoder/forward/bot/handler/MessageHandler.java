@@ -115,13 +115,12 @@ public class MessageHandler {
             } else if (callbackData.startsWith("access_request_accept_")) {
                 userId = Long.parseLong(callbackData.substring("access_request_accept_".length()));
                 permissionManager.approvedRequest(userId);
-                AccessRequest request = permissionManager.findRequestById(userId)
-                        .get();
+                AccessRequest request = permissionManager.findRequestById(userId);
                 permissionManager.saveUser(userId, request.getUserName());
                 bot.showAccessRequestsMenu(chatId, messageId, permissionManager.getRequests());
             } else if (callbackData.startsWith("access_request_reject_")) {
                 userId = Long.parseLong(callbackData.substring("access_request_reject_".length()));
-                permissionManager.approvedRequest(userId);
+                permissionManager.rejectRequest(userId);
                 bot.showAccessRequestsMenu(chatId, messageId, permissionManager.getRequests());
             } else {
                 switch (callbackData) {
