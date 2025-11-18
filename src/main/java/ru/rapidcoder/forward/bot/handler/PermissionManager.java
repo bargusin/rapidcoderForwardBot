@@ -54,7 +54,7 @@ public class PermissionManager {
     }
 
     public boolean hasAccess(Long userId) {
-        return isAdmin(userId) || Optional.of(findUserById(userId))
+        return isAdmin(userId) || Optional.ofNullable(findUserById(userId))
                 .map(user -> user.getStatus() == PermissionUser.UserStatus.ACTIVE)
                 .orElse(false);
     }

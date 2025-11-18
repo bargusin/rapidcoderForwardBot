@@ -6,7 +6,7 @@ WORKDIR /app
 RUN apk add --no-cache bash
 
 # Копирование собранного JAR
-COPY build/libs/rapidcoderForwardBot-0.1.0.jar app.jar
+COPY build/libs/rapidcoderForwardBot-1.0.1.jar app.jar
 
 # Создание пользователя для безопасности
 RUN addgroup -S bot && adduser -S bot -G bot

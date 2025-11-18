@@ -14,6 +14,8 @@ import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PermissionManagerTest {
 
@@ -145,6 +147,16 @@ public class PermissionManagerTest {
         assertThat(user).isNotNull();
         user = permissionManager.findUserById(2L);
         assertThat(user).isNull();
+    }
+
+    @Test
+    void testHasAccess() {
+        permissionManager.saveUser(1L, "userName");
+        PermissionUser user = permissionManager.findUserById(1L);
+        assertThat(user).isNotNull();
+        assertTrue(permissionManager.hasAccess(1L));
+        assertFalse(permissionManager.hasAccess(2L));
+        assertTrue(permissionManager.hasAccess(100L)); // админ
     }
 
     @Test
