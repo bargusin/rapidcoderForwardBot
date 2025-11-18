@@ -196,6 +196,22 @@ public class MessageHandlerTest {
     }
 
     @Test
+    void testShowMainMenuAfterGrantedAccess() {
+        Update update = createUpdateWithCallbackQuery(1L, 2L, "menu_request_access");
+        messageHandler.handleCallback(update);
+        verify(mockPermissionManager).saveRequest(any(), any());
+        verify(botSpy).sendMessage(any(), any(), any());
+
+        reset(botSpy);
+
+        doNothing().when(botSpy)
+                .sendMessage(any(), any(), any());
+        when(mockPermissionManager.hasAccess(2L)).thenReturn(true);
+        messageHandler.handleCallback(update);
+        verify(botSpy).showMainMenu(1L, null, false);
+    }
+
+    @Test
     void testHandleCallbackChatToggle() {
         Update update = createUpdateWithCallbackQuery(1L, adminUserId, "chat_toggle_1");
         messageHandler.handleCallback(update);
