@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.objects.*;
+import org.telegram.telegrambots.meta.api.objects.chatmember.ChatMember;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.rapidcoder.forward.bot.Bot;
 import ru.rapidcoder.forward.bot.dto.AccessRequest;
@@ -339,5 +340,78 @@ public class MessageHandlerTest {
         Update update = createUpdateWithCallbackQuery(1L, adminUserId, "settings_save");
         messageHandler.handleCallback(update);
         verify(botSpy).showNotification(any(), any());
+    }
+
+    @Test
+    void testHandleForwardMessage() {
+        Update update = createUpdateWithText(1L, adminUserId, "TEST");
+        messageHandler.handleForwardMessage(update);
+        verify(mockPermissionManager).hasAccess(adminUserId);
+    }
+
+    @Test
+    void testHandleChatMember() {
+        Update update = mock(Update.class);
+        ChatMemberUpdated chatMemberUpdated = mock(ChatMemberUpdated.class);
+        ChatMember newChatMember = mock(ChatMember.class);
+        ChatMember oldChatMember = mock(ChatMember.class);
+        Chat chat = mock(Chat.class);
+        User user = mock(User.class);
+
+        when(update.getMyChatMember()).thenReturn(chatMemberUpdated);
+        when(chatMemberUpdated.getChat()).thenReturn(chat);
+        when(chatMemberUpdated.getNewChatMember()).thenReturn(newChatMember);
+        when(chatMemberUpdated.getOldChatMember()).thenReturn(oldChatMember);
+        when(chatMemberUpdated.getNewChatMember()
+                .getStatus()).thenReturn("administrator");
+
+        when(chat.isChannelChat()).thenReturn(true);
+        when(chat.getId()).thenReturn(1L);
+        when(chat.getTitle()).thenReturn("TestChannel");
+
+        messageHandler.handleChatMember(update);
+        verify(mockChannelManager).save(1L, -1L, "not defined", "TestChannel", "channel", "administrator", "not defined");
+
+        when(chat.isChannelChat()).thenReturn(false);
+        when(chat.isGroupChat()).thenReturn(true);
+        messageHandler.handleChatMember(update);
+        verify(mockChannelManager).save(1L, -1L, "not defined", "TestChannel", "group", "administrator", "not defined");
+
+        when(chat.isChannelChat()).thenReturn(false);
+        when(chat.isGroupChat()).thenReturn(false);
+        when(chat.isSuperGroupChat()).thenReturn(true);
+        messageHandler.handleChatMember(update);
+        verify(mockChannelManager).save(1L, -1L, "not defined", "TestChannel", "supergroup", "administrator", "not defined");
+
+        when(chat.isChannelChat()).thenReturn(false);
+        when(chat.isGroupChat()).thenReturn(false);
+        when(chat.isSuperGroupChat()).thenReturn(false);
+        when(chat.isUserChat()).thenReturn(true);
+        messageHandler.handleChatMember(update);
+        verify(mockChannelManager).save(1L, -1L, "not defined", "TestChannel", "private", "administrator", "not defined");
+
+        when(chat.isChannelChat()).thenReturn(false);
+        when(chat.isGroupChat()).thenReturn(false);
+        when(chat.isSuperGroupChat()).thenReturn(false);
+        when(chat.isUserChat()).thenReturn(false);
+        messageHandler.handleChatMember(update);
+        verify(mockChannelManager).save(1L, -1L, "not defined", "TestChannel", "unknown", "administrator", "not defined");
+
+
+        when(chatMemberUpdated.getFrom()).thenReturn(user);
+        when(chat.isChannelChat()).thenReturn(true);
+        when(chatMemberUpdated.getFrom()
+                .getId()).thenReturn(2L);
+        when(chatMemberUpdated.getFrom()
+                .getUserName()).thenReturn("John Smith");
+        when(chatMemberUpdated.getOldChatMember()
+                .getStatus()).thenReturn("left");
+        messageHandler.handleChatMember(update);
+        verify(mockChannelManager).save(1L, 2L, "John Smith", "TestChannel", "channel", "administrator", "left");
+
+        when(chatMemberUpdated.getNewChatMember()
+                .getStatus()).thenReturn("left");
+        messageHandler.handleChatMember(update);
+        verify(mockChannelManager).delete(1L);
     }
 }
