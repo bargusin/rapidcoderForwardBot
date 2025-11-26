@@ -98,26 +98,26 @@ public class ChannelManagerTest {
     @Test
     void testSaveHistorySending() {
         assertThrows(NullPointerException.class, () -> {
-            channelManager.saveHistorySending(null, null, null, null, null);
+            channelManager.saveHistorySending(null, null, null, null, null, null);
         });
 
         assertThrows(NullPointerException.class, () -> {
-            channelManager.saveHistorySending(1L, null, null, null, null);
+            channelManager.saveHistorySending(1L, null, null, null, null, null);
         });
 
         assertThrows(NullPointerException.class, () -> {
-            channelManager.saveHistorySending(1L, 2L, null, null, null);
+            channelManager.saveHistorySending(1L, 2L, null, null, null, null);
         });
 
         assertThrows(NullPointerException.class, () -> {
-            channelManager.saveHistorySending(1L, 2L, "userName", null, null);
+            channelManager.saveHistorySending(1L, 2L, "userName", null, null, null);
         });
 
         assertThrows(NullPointerException.class, () -> {
-            channelManager.saveHistorySending(1L, 2L, "userName", "TestChannel", null);
+            channelManager.saveHistorySending(1L, 2L, "userName", "TestChannel", null, null);
         });
 
-        channelManager.saveHistorySending(1L, 2L, "userName", "TestChannel", 3);
+        channelManager.saveHistorySending(1L, 2L, "userName", "TestChannel", 3, "text");
         assertThat(channelManager.getHistorySending()
                 .size()).isNotZero();
 

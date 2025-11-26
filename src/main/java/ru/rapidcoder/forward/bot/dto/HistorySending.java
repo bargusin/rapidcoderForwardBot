@@ -11,6 +11,7 @@ public class HistorySending {
     private String userName;
     private String chatTitle;
     private Integer messageId;
+    private String text;
     private LocalDateTime addedDate;
 
     public Long getChatId() {
@@ -59,6 +60,14 @@ public class HistorySending {
 
     public void setAddedDate(LocalDateTime addedDate) {
         this.addedDate = addedDate;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
     }
 
     @Override

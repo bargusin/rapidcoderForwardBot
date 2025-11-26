@@ -64,7 +64,7 @@ public class ChannelStorage {
                     UPDATE monitored_chats
                     SET updated_at = CURRENT_TIMESTAMP
                     WHERE chat_id = NEW.chat_id;
-
+                
                     INSERT INTO history_monitored_chats
                     (chat_id, user_id, user_name, chat_title, chat_type, bot_new_status, bot_old_status, deleted)
                     VALUES
@@ -114,6 +114,35 @@ public class ChannelStorage {
         } catch (SQLException e) {
             logger.error("Failed to initialize chat's storage database: {}", e.getMessage(), e);
         }
+
+        addColumnIfNotExists("history_sending_to_chat", "msg", "TEXT");
+    }
+
+    private boolean columnExists(String tableName, String columnName) {
+        String sql = "PRAGMA table_info(" + tableName + ")";
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                if (columnName.equals(rs.getString("name"))) {
+                    return true;
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Failed checking column exists: {}", e.getMessage(), e);
+        }
+        return false;
+    }
+
+    public void addColumnIfNotExists(String tableName, String columnName, String columnType) {
+        if (!columnExists(tableName, columnName)) {
+            String sql = String.format("ALTER TABLE %s ADD COLUMN %s %s;", tableName, columnName, columnType);
+
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                stmt.execute(sql);
+                logger.info("Column {} added to {} successful", columnName, tableName);
+            } catch (SQLException e) {
+                logger.error("Failed add column to database: {}", e.getMessage(), e);
+            }
+        }
     }
 
     public void saveOrUpdateChat(ChatMembership chat) {
@@ -140,8 +169,8 @@ public class ChannelStorage {
     public void saveHistorySendingToChat(HistorySending send) {
         String sql = """
                 INSERT INTO history_sending_to_chat
-                    (chat_id, user_id, user_name, chat_title, message_id)
-                    VALUES (?, ?, ?, ?, ?)
+                    (chat_id, user_id, user_name, chat_title, message_id, msg)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 """;
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, send.getChatId());
@@ -149,6 +178,7 @@ public class ChannelStorage {
             stmt.setString(3, send.getUserName());
             stmt.setString(4, send.getChatTitle());
             stmt.setInt(5, send.getMessageId());
+            stmt.setString(6, send.getText());
             stmt.executeUpdate();
             logger.debug("Sending history to chat '{}' saved into database", send.getChatTitle());
         } catch (SQLException e) {
@@ -165,6 +195,7 @@ public class ChannelStorage {
                         user_name,
                         chat_title,
                         message_id,
+                        msg,
                         created_at
                     FROM history_sending_to_chat
                     ORDER BY created_at DESC LIMIT 20
@@ -328,6 +359,7 @@ public class ChannelStorage {
         send.setUserName(rs.getString("user_name"));
         send.setChatTitle(rs.getString("chat_title"));
         send.setMessageId(rs.getInt("message_id"));
+        send.setText(rs.getString("msg"));
         send.setAddedDate(LocalDateTime.parse(rs.getString("created_at"), formatter));
         return send;
     }

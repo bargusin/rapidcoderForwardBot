@@ -50,14 +50,17 @@ public class ChannelManager {
      * @param userName  имя пользователя
      * @param title     название чата
      * @param messageId идентификатор сообщения
+     * @param text часть текста отправленного сообщения
+     *
      */
-    public void saveHistorySending(Long chatId, Long userId, String userName, String title, Integer messageId) {
+    public void saveHistorySending(Long chatId, Long userId, String userName, String title, Integer messageId, String text) {
         HistorySending send = new HistorySending();
         send.setChatId(chatId);
         send.setUserId(userId);
         send.setUserName(userName);
         send.setChatTitle(title);
         send.setMessageId(messageId);
+        send.setText(text);
         storage.saveHistorySendingToChat(send);
     }
 
