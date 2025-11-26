@@ -1,5 +1,6 @@
 package ru.rapidcoder.forward.bot;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -197,7 +198,7 @@ public class Bot extends TelegramLongPollingBot {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
         for (HistorySending send : history) {
-            sb.append(String.format("%s %s [%s...] (userName=%s, channel=%s)%n", formatter.format(send.getAddedDate()), getLinkMessage(send.getChatId(), send.getMessageId()), send.getText(), send.getUserName(), send.getChatTitle()));
+            sb.append(String.format("%s %s [%s...] (userName=%s, channel=%s)%n", formatter.format(send.getAddedDate()), getLinkMessage(send.getChatId(), send.getMessageId()), !StringUtils.isEmpty(send.getText()) ? send.getText() : "", send.getUserName(), send.getChatTitle()));
         }
 
         rows.add(List.of(new KeyboardButton("\uD83C\uDFE0 Главное меню", BACK_TO_MAIN_CALLBACK_DATA)));
