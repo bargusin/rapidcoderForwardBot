@@ -84,7 +84,7 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     public void showMainMenu(Long chatId, Integer messageId, boolean isAdmin) {
-        String text = "\uD83C\uDFE0 *Главное меню*";
+        String text = "\uD83C\uDFE0 <b>Главное меню</b>";
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
@@ -114,13 +114,13 @@ public class Bot extends TelegramLongPollingBot {
 
     public void showChatsMenu(Long chatId, Integer messageId, List<ChatMembership> chats) {
         StringBuilder sb = new StringBuilder();
-        sb.append("\uD83D\uDCE2 *Подписка на каналы*\n\n");
+        sb.append("\uD83D\uDCE2 <b>Подписка на каналы</b>\n\n");
 
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
         for (ChatMembership chat : chats) {
-            sb.append(String.format("✔\uFE0F *%s* (тип: %s, роль: %s)%n", chat.getChatTitle(), chat.getChatType(), chat.getBotNewStatus()));
+            sb.append(String.format("✔\uFE0F <b>%s</b> (тип: %s, роль: %s)%n", chat.getChatTitle(), chat.getChatType(), chat.getBotNewStatus()));
         }
 
         rows.add(List.of(new KeyboardButton("\uD83D\uDCCB История подписок", "menu_chats_history")));
@@ -137,7 +137,7 @@ public class Bot extends TelegramLongPollingBot {
 
     public void showSendMenu(Long chatId, Integer messageId, List<ChatMembership> chats) {
         StringBuilder sb = new StringBuilder();
-        sb.append("✉\uFE0F *Отправка сообщения в каналы*\n\n");
+        sb.append("✉\uFE0F <b>Отправка сообщения в каналы</b>\n\n");
 
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
@@ -170,7 +170,7 @@ public class Bot extends TelegramLongPollingBot {
 
     public void showChatsHistoryMenu(Long chatId, Integer messageId, List<HistoryChatMembership> chats) {
         StringBuilder sb = new StringBuilder();
-        sb.append("\uD83D\uDCCB *История подписок*\n\n");
+        sb.append("\uD83D\uDCCB <b>История подписок</b>\n\n");
 
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
@@ -191,7 +191,7 @@ public class Bot extends TelegramLongPollingBot {
 
     public void showSendingHistoryMenu(Long chatId, Integer messageId, List<HistorySending> history) {
         StringBuilder sb = new StringBuilder();
-        sb.append("\uD83D\uDCCB *История отправки сообщений*\n\n");
+        sb.append("\uD83D\uDCCB <b>История отправки сообщений</b>\n\n");
 
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
@@ -217,29 +217,29 @@ public class Bot extends TelegramLongPollingBot {
 
     public void showHelpMenu(Long chatId, Integer messageId) {
         String text = """
-                \uD83D\uDCAC *Помощь по боту*
+                \uD83D\uDCAC <b>Помощь по боту</b>
                 
-                *Основные команды:*
-                `/start` - Главное меню
-                `/help` - Помощь
+                <b>Основные команды:</b>
+                /start - Главное меню
+                /help - Помощь
                 
                 Для того чтобы бот смог отправлять сообщения в каналы, его необходимо добавить администратором в эти каналы с соответствующим доступом.
                 
                 В боте реализована ролевая модель доступа к боту. Список администраторов, которые могут управлять доступом к боту для других пользователей, указывается при установке бота на сервер. Обычный пользователь запустив бот, не сможет получить к нему доступ. Он увидит кнопку *[Запросить доступ]*, нажав на которую, отправит уведомление на предоставления доступа.
                 
                 Если пользователю предоставлен доступ, или пользователь является администратором бота, то ему доступен следующий функционал:
-                *[Подписка на каналы]* - список каналов, в которых бот является администратором и может отправлять в них сообщения.
-                     *[История подписок]* - история действий, которые производились с ботом в каналах, включая исключение его из администраторов.
-                     *[Выгрузить данные о подписках]* - выгружается бэкап с данными сервера.
-                *[Доступ к боту]* - (доступно только администраторам) управление предоставлением доступа пользователей к боту (возможно как заблокировать, так и разблокировать пользователя).
-                *[Запросы на доступ к боту]* - (доступно только администраторам) список запросов от пользователей на предоставление доступа.
-                *[История рассылок]* - список сообщений, которые отправлялись из бота в каналы.
+                <b>[Подписка на каналы]</b> - список каналов, в которых бот является администратором и может отправлять в них сообщения.
+                     • <b>[История подписок]</b> - история действий, которые производились с ботом в каналах, включая исключение его из администраторов.
+                     • <b>[Выгрузить данные о подписках]</b> - выгружается бэкап с данными сервера.
+                <b>[Доступ к боту]</b> - (доступно только администраторам) управление предоставлением доступа пользователей к боту (возможно как заблокировать, так и разблокировать пользователя).
+                <b>[Запросы на доступ к боту]</b> - (доступно только администраторам) список запросов от пользователей на предоставление доступа.
+                <b>[История рассылок]</b> - список сообщений, которые отправлялись из бота в каналы.
                 
                 Как работает отправка сообщений в каналы:
                 1. Пользователь пересылает сообщение в бот.
-                2. Спустя 2 секунды появляется список каналов, на который подписан бот, а также кнопки *[Отправить]* и *[Очистить]*.
+                2. Спустя 2 секунды появляется список каналов, на который подписан бот, а также кнопки <b>[Отправить]</b> и <b>[Очистить]</b>.
                 3. Пользователь может убрать из списка каналов те, в которые он не хочет отправлять сообщение.
-                4. После нажатия кнопки *[Отправить]* сообщение будет отправлено в выбранные каналы, история о рассылке сохранится.
+                4. После нажатия кнопки <b>[Отправить]</b> сообщение будет отправлено в выбранные каналы, история о рассылке сохранится.
                 5. После завершения рассылки вверху интерфейса телеграм появится соответствующее всплывающее сообщение и пропадут кнопки управления отправкой.
                 6. Бот снова готов к приему пересылаемого сообщения.
                 """;
@@ -253,14 +253,14 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     public void showRequestAccessMenu(Long userId) {
-        String text = "*Запрос на доступ к боту*";
+        String text = "<b>Запрос на доступ к боту</b>";
 
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(List.of(List.of(new KeyboardButton("❓ Запросить доступ", "menu_request_access"))));
         sendMessage(userId, text, keyboard);
     }
 
     public void showAccessRequestsMenu(Long chatId, Integer messageId, List<AccessRequest> accessRequests) {
-        String text = String.format("❓ *Запросы на доступ к боту*%n%n%s", accessRequests.isEmpty() ? "Запросов на доступ к боту нет" : "");
+        String text = String.format("❓ <b>Запросы на доступ к боту</b>%n%n%s", accessRequests.isEmpty() ? "Запросов на доступ к боту нет" : "");
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         for (AccessRequest request : accessRequests) {
@@ -282,7 +282,7 @@ public class Bot extends TelegramLongPollingBot {
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
-        String text = "\uD83D\uDD12 *Доступ к боту*";
+        String text = "\uD83D\uDD12 <b>Доступ к боту</b>";
         for (PermissionUser user : users) {
             KeyboardButton action = null;
             if (PermissionUser.UserStatus.BLOCKED.equals(user.getStatus())) {
@@ -303,7 +303,7 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     public void showSettingsMenu(Long chatId, Integer messageId) {
-        String text = "⚙\uFE0F *Настройки бота*\n";
+        String text = "⚙\uFE0F <b>Настройки бота</b>\n";
         if (messageId != null) {
             updateMessage(chatId, messageId, text, createSettingsKeyboard());
         } else {
@@ -333,7 +333,7 @@ public class Bot extends TelegramLongPollingBot {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText(text);
-        message.setParseMode(ParseMode.MARKDOWN);
+        message.setParseMode(ParseMode.HTML);
         message.setReplyMarkup(keyboard);
         try {
             execute(message);
@@ -347,7 +347,7 @@ public class Bot extends TelegramLongPollingBot {
         message.setChatId(chatId);
         message.setText(text);
         message.setMessageId(messageId);
-        message.setParseMode(ParseMode.MARKDOWN);
+        message.setParseMode(ParseMode.HTML);
         message.setReplyMarkup(keyboard);
         try {
             execute(message);
