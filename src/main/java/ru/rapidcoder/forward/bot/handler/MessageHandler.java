@@ -1,6 +1,6 @@
 package ru.rapidcoder.forward.bot.handler;
 
-import ch.qos.logback.core.util.StringUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.methods.CopyMessage;
@@ -28,6 +28,7 @@ public class MessageHandler {
     private final Map<Long, ScheduledFuture<?>> userTimers = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final int TEXT_LENGTH = 50;
+    private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
 
     public MessageHandler(Bot bot, String storageFile, List<Long> admins) {
         channelManager = new ChannelManager(storageFile);
@@ -174,7 +175,7 @@ public class MessageHandler {
                                         .get(chatId));
                             }
                         }
-                        bot.showNotification(callbackId, "✅ Сообщение отправлено адресатам");
+                        bot.showNotification(callbackId, "✅ Сообщение рассылается адресатам...");
                         bot.getMessagesForSend()
                                 .put(chatId, new ArrayList<>());
                         bot.showMainMenu(chatId, messageId, permissionManager.isAdmin(userId));
@@ -277,53 +278,55 @@ public class MessageHandler {
     }
 
     private void sendForwardMessage(ChatMembership chat, Long userId, String userName, List<Message> groupMessages) {
-        List<InputMedia> mediaList = new ArrayList<>();
-        String caption = null;
-        for (Message message : groupMessages) {
-            if (message.hasPhoto()) {
-                InputMediaPhoto photo = new InputMediaPhoto();
-                List<PhotoSize> photos = message.getPhoto();
-                photo.setMedia(photos.get(photos.size() - 1)
-                        .getFileId());
-                if (message.getCaption() != null && caption == null) {
-                    caption = message.getCaption();
-                    photo.setCaption(caption);
-                }
-                photo.setCaptionEntities(message.getCaptionEntities());
-                mediaList.add(photo);
-            } else if (message.hasVideo()) {
-                InputMediaVideo video = new InputMediaVideo();
-                video.setMedia(message.getVideo()
-                        .getFileId());
-                if (message.getCaption() != null && caption == null) {
-                    caption = message.getCaption();
-                    video.setCaption(caption);
-                }
-                video.setCaptionEntities(message.getCaptionEntities());
-                mediaList.add(video);
-            }
-        }
-
-        if (!mediaList.isEmpty() && mediaList.size() > 1) {
-            SendMediaGroup mediaGroup = new SendMediaGroup(chat.getChatId()
-                    .toString(), mediaList);
-            try {
-                List<Message> sending = bot.execute(mediaGroup);
-                try {
-                    for (Message message : sending) {
-                        channelManager.saveHistorySending(chat.getChatId(), userId, userName, chat.getChatTitle(), message.getMessageId(), getPartMessageText(message));
+        executorService.schedule(() -> {
+            List<InputMedia> mediaList = new ArrayList<>();
+            String caption = null;
+            for (Message message : groupMessages) {
+                if (message.hasPhoto()) {
+                    InputMediaPhoto photo = new InputMediaPhoto();
+                    List<PhotoSize> photos = message.getPhoto();
+                    photo.setMedia(photos.get(photos.size() - 1)
+                            .getFileId());
+                    if (message.getCaption() != null && caption == null) {
+                        caption = message.getCaption();
+                        photo.setCaption(caption);
                     }
-                } catch (Exception e) {
+                    photo.setCaptionEntities(message.getCaptionEntities());
+                    mediaList.add(photo);
+                } else if (message.hasVideo()) {
+                    InputMediaVideo video = new InputMediaVideo();
+                    video.setMedia(message.getVideo()
+                            .getFileId());
+                    if (message.getCaption() != null && caption == null) {
+                        caption = message.getCaption();
+                        video.setCaption(caption);
+                    }
+                    video.setCaptionEntities(message.getCaptionEntities());
+                    mediaList.add(video);
+                }
+            }
+
+            if (!mediaList.isEmpty() && mediaList.size() > 1) {
+                SendMediaGroup mediaGroup = new SendMediaGroup(chat.getChatId()
+                        .toString(), mediaList);
+                try {
+                    List<Message> sending = bot.execute(mediaGroup);
+                    try {
+                        for (Message message : sending) {
+                            channelManager.saveHistorySending(chat.getChatId(), userId, userName, chat.getChatTitle(), message.getMessageId(), getPartMessageText(message));
+                        }
+                    } catch (Exception e) {
+                        logger.error(e.getMessage(), e);
+                    }
+                } catch (TelegramApiException e) {
                     logger.error(e.getMessage(), e);
                 }
-            } catch (TelegramApiException e) {
-                logger.error(e.getMessage(), e);
             }
-        }
 
-        if (!groupMessages.isEmpty() && mediaList.size() < 2) {
-            sendCopyMessage(chat, userId, userName, groupMessages.get(0));
-        }
+            if (!groupMessages.isEmpty() && mediaList.size() < 2) {
+                sendCopyMessage(chat, userId, userName, groupMessages.get(0));
+            }
+        }, 5, TimeUnit.SECONDS);
     }
 
     public void sendCopyMessage(ChatMembership chat, Long userId, String userName, Message message) {
@@ -348,9 +351,9 @@ public class MessageHandler {
 
     private String getPartMessageText(Message message) {
         String text = message.getText();
-        if (!StringUtil.isNullOrEmpty(text)) {
+        if (!StringUtils.isEmpty(text)) {
             text = message.getText();
-        } else if (!StringUtil.isNullOrEmpty(message.getCaption())) {
+        } else if (!StringUtils.isEmpty(message.getCaption())) {
             text = message.getCaption();
         } else {
             return null;
