@@ -1,5 +1,6 @@
 package ru.rapidcoder.forward.bot.handler;
 
+import ch.qos.logback.core.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.methods.CopyMessage;
@@ -26,6 +27,7 @@ public class MessageHandler {
     private final Bot bot;
     private final Map<Long, ScheduledFuture<?>> userTimers = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private final int TEXT_LENGTH = 50;
 
     public MessageHandler(Bot bot, String storageFile, List<Long> admins) {
         channelManager = new ChannelManager(storageFile);
@@ -309,7 +311,7 @@ public class MessageHandler {
                 List<Message> sending = bot.execute(mediaGroup);
                 try {
                     for (Message message : sending) {
-                        channelManager.saveHistorySending(chat.getChatId(), userId, userName, chat.getChatTitle(), message.getMessageId());
+                        channelManager.saveHistorySending(chat.getChatId(), userId, userName, chat.getChatTitle(), message.getMessageId(), getPartMessageText(message));
                     }
                 } catch (Exception e) {
                     logger.error(e.getMessage(), e);
@@ -335,13 +337,25 @@ public class MessageHandler {
             MessageId sending = bot.execute(copy);
             try {
                 channelManager.saveHistorySending(chat.getChatId(), userId, userName, chat.getChatTitle(), sending.getMessageId()
-                        .intValue());
+                        .intValue(), getPartMessageText(message));
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
         } catch (TelegramApiException e) {
             logger.error(e.getMessage(), e);
         }
+    }
+
+    private String getPartMessageText(Message message) {
+        String text = message.getText();
+        if (!StringUtil.isNullOrEmpty(text)) {
+            text = message.getText();
+        } else if (!StringUtil.isNullOrEmpty(message.getCaption())) {
+            text = message.getCaption();
+        } else {
+            return null;
+        }
+        return text.substring(0, TEXT_LENGTH);
     }
 
     private static class OptionalUtils {
