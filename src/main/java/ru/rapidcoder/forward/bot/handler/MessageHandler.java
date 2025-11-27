@@ -325,7 +325,7 @@ public class MessageHandler {
             if (!groupMessages.isEmpty() && mediaList.size() < 2) {
                 sendCopyMessage(chat, userId, userName, groupMessages.get(0));
             }
-        }, 5, TimeUnit.SECONDS);
+        }, 2, TimeUnit.SECONDS);
     }
 
     public void sendCopyMessage(ChatMembership chat, Long userId, String userName, Message message) {
