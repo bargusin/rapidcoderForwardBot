@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.*;
 
@@ -31,6 +32,13 @@ public class MessageHandlerTest {
     private final PermissionManager mockPermissionManager = mock(PermissionManager.class);
     private MessageHandler messageHandler;
     private Bot botSpy;
+
+    public static String generateRepeatedChar(char ch, int length) {
+        if (length <= 0)
+            return "";
+        return String.valueOf(ch)
+                .repeat(length);
+    }
 
     @AfterEach
     void cleanup() {
@@ -413,5 +421,36 @@ public class MessageHandlerTest {
                 .getStatus()).thenReturn("left");
         messageHandler.handleChatMember(update);
         verify(mockChannelManager).delete(1L);
+    }
+
+    @Test
+    void testGetPartMessageText() throws Exception {
+        Message message = new Message();
+        String randomText = generateRepeatedChar('S', 0);
+        message.setText(randomText);
+        assertThat((String) TestUtils.callPrivateMethod(messageHandler, "getPartMessageText", new Class[]{Message.class}, message)).isNull();
+
+        message.setText(null);
+        assertThat((String) TestUtils.callPrivateMethod(messageHandler, "getPartMessageText", new Class[]{Message.class}, message)).isNull();
+
+        randomText = generateRepeatedChar('S', 5);
+        message.setText(randomText);
+        assertThat((String) TestUtils.callPrivateMethod(messageHandler, "getPartMessageText", new Class[]{Message.class}, message)).isEqualTo(randomText);
+
+        message.setText(null);
+        message.setCaption(randomText);
+        assertThat((String) TestUtils.callPrivateMethod(messageHandler, "getPartMessageText", new Class[]{Message.class}, message)).isEqualTo(randomText);
+
+        message.setText(randomText);
+        message.setCaption("TEST");
+        assertThat((String) TestUtils.callPrivateMethod(messageHandler, "getPartMessageText", new Class[]{Message.class}, message)).isEqualTo(randomText);
+
+        randomText = generateRepeatedChar('S', 50);
+        message.setText(randomText);
+        assertThat((String) TestUtils.callPrivateMethod(messageHandler, "getPartMessageText", new Class[]{Message.class}, message)).isEqualTo(randomText);
+
+        randomText = generateRepeatedChar('S', 51);
+        message.setText(randomText);
+        assertThat((String) TestUtils.callPrivateMethod(messageHandler, "getPartMessageText", new Class[]{Message.class}, message)).isEqualTo(randomText.substring(0, 50));
     }
 }
