@@ -34,8 +34,9 @@ public class MessageHandlerTest {
     private Bot botSpy;
 
     public static String generateRepeatedChar(char ch, int length) {
-        if (length <= 0)
+        if (length <= 0) {
             return "";
+        }
         return String.valueOf(ch)
                 .repeat(length);
     }
