@@ -27,7 +27,6 @@ public class MessageHandler {
     private final Bot bot;
     private final Map<Long, ScheduledFuture<?>> userTimers = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    private final int TEXT_LENGTH = 50;
     private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
 
     public MessageHandler(Bot bot, String storageFile, List<Long> admins) {
@@ -358,7 +357,7 @@ public class MessageHandler {
         } else {
             return null;
         }
-        return text.substring(0, TEXT_LENGTH);
+        return text.substring(0, Math.min(text.length(), 50));
     }
 
     private static class OptionalUtils {
